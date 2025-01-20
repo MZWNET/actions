@@ -157,7 +157,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: vaultwarden-${{ inputs.version }}
-          name: vaultwarden Binary (v${{ inputs.version }})
+          name: Binary Pack for vaultwarden (v${{ inputs.version }})
           body: This release contains the officially supported binary of [vaultwarden](https://github.com/dani-garcia/vaultwarden) (v${{ inputs.version }}), extracted from official docker image.
           files: artifacts/**/*
           fail_on_unmatched_files: true
