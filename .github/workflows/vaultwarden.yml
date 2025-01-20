@@ -77,7 +77,7 @@ jobs:
         run: |
           mkdir cache
           cd cache
-          tar -zxvf ../artifacts/vaultwarden-x86_64-binary.tar.gz
+          tar -zxvf ../artifacts/tar_gz/vaultwarden-x86_64-binary.tar.gz
           mkdir -p usr/bin
           mv vaultwarden usr/bin/
           mkdir -p var/lib/vaultwarden/
@@ -115,7 +115,7 @@ jobs:
         run: |
           mkdir cache
           cd cache
-          tar -zxvf ../artifacts/vaultwarden-arm64-binary.tar.gz
+          tar -zxvf ../artifacts/tar_gz/vaultwarden-arm64-binary.tar.gz
           mkdir -p usr/bin
           mv vaultwarden usr/bin/
           mkdir -p var/lib/vaultwarden/
@@ -155,5 +155,5 @@ jobs:
           tag_name: vaultwarden-${{ inputs.version }}
           name: vaultwarden Binary (v${{ inputs.version }})
           body: This release contains the officially supported binary of [vaultwarden](https://github.com/dani-garcia/vaultwarden) (v${{ inputs.version }}), extracted from official docker image.
-          files: artifacts/*
+          files: artifacts/**/*
           fail_on_unmatched_files: true
