@@ -58,7 +58,7 @@ jobs:
           tar -zxvf ../artifacts/tar_gz/nchat-v${{ env.NCHAT_VERSION }}-x86_64-binary.tar.gz
       - name: Pack deb
         id: pack_deb
-        uses: jiro4989/build-deb-action@v3
+        uses: jiro4989/build-deb-action@v4
         with:
           package: nchat
           package_root: build/

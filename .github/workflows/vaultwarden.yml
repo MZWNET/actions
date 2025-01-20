@@ -88,7 +88,7 @@ jobs:
           cp ../resources/assets/deb-resources/vaultwarden.service etc/systemd/system/
       - name: Pack deb
         id: pack_amd64_deb
-        uses: jiro4989/build-deb-action@v3
+        uses: jiro4989/build-deb-action@v4
         with:
           package: vaultwarden
           package_root: cache/
@@ -126,7 +126,7 @@ jobs:
           cp ../resources/assets/deb-resources/vaultwarden.service etc/systemd/system/
       - name: Pack deb
         id: pack_arm64_deb
-        uses: jiro4989/build-deb-action@v3
+        uses: jiro4989/build-deb-action@v4
         with:
           package: vaultwarden
           package_root: cache/
