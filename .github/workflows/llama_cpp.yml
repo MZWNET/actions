@@ -37,10 +37,8 @@ jobs:
       - name: Pack
         run: |
           mkdir -p build/dist 
-          cd build/bin/
           find . -name "*.so" -exec mv {} build/bin/ \;
-          ls -alh
-          ls -alh build/bin/
+          cd build/bin/ || exit
           zip ../dist/llama-${{ inputs.version }}-bin-linux-avx2-intel-mkl-x64.zip ./*
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -72,8 +70,8 @@ jobs:
       - name: Pack
         run: |
           mkdir -p build/dist 
-          cd build/bin/
           find . -name "*.so" -exec mv {} build/bin/ \;
+          cd build/bin/ || exit
           zip ../dist/llama-${{ inputs.version }}-bin-linux-avx2-sycl-x64.zip ./*
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
