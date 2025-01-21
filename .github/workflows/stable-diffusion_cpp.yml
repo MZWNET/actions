@@ -32,7 +32,7 @@ jobs:
       - name: Install Deps
         run: |
           sudo apt-get update
-          sudo apt-get install ccache ninja-build libopenblas-dev zip -y
+          sudo apt-get install ccache ninja-build libopenblas-dev libjulia-openblas64 zip -y
       - name: Checkout
         uses: actions/checkout@v4
         with:
