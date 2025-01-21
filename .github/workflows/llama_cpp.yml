@@ -32,12 +32,15 @@ jobs:
           mkdir -p build
           cd build || exit
           source /opt/intel/oneapi/setvars.sh
-          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=RELEASE -DGGML_BLAS=ON -DGGML_BLAS_VENDOR=Intel10_64lp -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DGGML_NATIVE=ON -DGGML_AVX2=ON
+          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=RELEASE -DBUILD_SHARED_LIBS=ON -DGGML_BLAS=ON -DGGML_BLAS_VENDOR=Intel10_64lp -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DGGML_NATIVE=ON -DGGML_AVX2=ON
           cmake --build . --config Release -j $(nproc)
       - name: Pack
         run: |
           mkdir -p build/dist 
           cd build/bin/
+          find . -name "*.so" -exec mv {} build/bin/ \;
+          ls -alh
+          ls -alh build/bin/
           zip ../dist/llama-${{ inputs.version }}-bin-linux-avx2-intel-mkl-x64.zip ./*
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -64,12 +67,13 @@ jobs:
           mkdir -p build
           cd build || exit
           source /opt/intel/oneapi/setvars.sh
-          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DGGML_SYCL=ON -DGGML_AVX2=ON
+          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=RELEASE -DBUILD_SHARED_LIBS=ON -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DGGML_SYCL=ON -DGGML_AVX2=ON
           cmake --build . --config Release -j $(nproc)
       - name: Pack
         run: |
           mkdir -p build/dist 
           cd build/bin/
+          find . -name "*.so" -exec mv {} build/bin/ \;
           zip ../dist/llama-${{ inputs.version }}-bin-linux-avx2-sycl-x64.zip ./*
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
