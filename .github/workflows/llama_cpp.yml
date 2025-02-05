@@ -46,7 +46,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: intel-mkl-avx2-linux
-          path: build/dist/llama-${{ inputs.version }}-bin-linux-avx2-intel-mkl-x64.zip
+          path: build/dist/*
   build_sycl_avx2_linux:
     runs-on: ubuntu-latest
     steps:
@@ -81,7 +81,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: sycl-avx2-linux
-          path: build/dist/llama-${{ inputs.version }}-bin-linux-avx2-sycl-x64.zip
+          path: build/dist/*
   build_cu128_avx512_linux:
     runs-on: ubuntu-latest
     steps:
@@ -118,7 +118,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: cu128-avx512-linux
-          path: build/dist/llama-${{ inputs.version }}-bin-linux-avx512-cuda-cu12.6.2-x64.zip
+          path: build/dist/*
   release:
     runs-on: ubuntu-latest
     needs: [build_intel_mkl_avx2_linux, build_sycl_avx2_linux, build_cu128_avx512_linux]
