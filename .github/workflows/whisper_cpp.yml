@@ -38,6 +38,8 @@ jobs:
         run: |
           mkdir -p build/dist 
           find . -name "*.so" -exec mv {} build/bin/ \;
+          # Unknown reason why the .so file is not copied to the bin folder
+          mv src/libwhisper.so build/bin/
           cd build/bin/ || exit
           zip ../dist/whisper-${{ inputs.version }}-bin-linux-avx2-sycl-x64.zip ./*
       - name: Upload Artifacts
@@ -72,6 +74,12 @@ jobs:
         run: |
           mkdir -p build/dist
           find . -name "*.so" -exec mv {} build/bin/ \;
+          ls -alh
+          ls -alh src
+          # Unknown reason why the .so file is not copied to the bin folder
+          mv src/libwhisper.so build/bin/
+          ls -alh src
+          ls -alh build/bin
           cd build/bin/ || exit
           zip ../dist/whisper-${{ inputs.version }}-bin-linux-avx512-cuda-cu12.8.0-x64.zip ./*
       - name: Upload Artifacts
