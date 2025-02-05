@@ -1,0 +1,58 @@
+name: Build UI-TARS Desktop Linux Version
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        id: checkout
+        run: |
+          git clone https://github.com/bytedance/UI-TARS-desktop.git .
+          git remote add linux-support https://github.com/vishwamartur/UI-TARS-desktop.git
+          git fetch linux-support
+          git merge linux-support/add-linux-support
+          git remote rm linux-support
+          echo "hash=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+      - name: Get short commit hash
+        id: short_commit_hash
+        uses: prompt/actions-commit-hash@v3
+        with:
+          commit: ${{ steps.checkout.outputs.hash }}
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: latest
+          check-latest: true
+          cache: pnpm
+      - name: Install Dependencies
+        run: |
+          pnpm install
+          pnpm add electron-builder --dev
+      - name: Build
+        run: |
+          pnpm run clean
+          pnpm run build:deps
+          pnpm run typecheck
+          NODE_ENV=production electron-vite build
+          # electron-forge make --enable-logging
+          electron-builder build --linux --publish=never
+          cp dist/linux-unpacked/resources/app.asar dist/app.asar
+          ls -alh dist
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ui-tars-desktop-${{ steps.short_commit_hash.outputs.short }}
+          name: Binary Build for UI-TARS Desktop (${{ steps.short_commit_hash.outputs.short }})
+          body: This release contains the x86_64 binary of [UI-TARS Desktop](https://github.com/bytedance/UI-TARS-desktop)(Merged bytedance/UI-TARS-desktop#45) (${{ steps.short_commit_hash.outputs.short }}).
+          files: build/dist/app.asar
+          fail_on_unmatched_files: true
