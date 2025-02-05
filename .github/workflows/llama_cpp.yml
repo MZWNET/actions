@@ -21,6 +21,8 @@ jobs:
           echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
           sudo apt-get update
           sudo apt-get install ccache intel-basekit intel-oneapi-mkl intel-oneapi-mkl-devel ninja-build zip -y
+          rustup update stable
+          rustup default stable
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -32,7 +34,7 @@ jobs:
           mkdir -p build
           cd build || exit
           source /opt/intel/oneapi/setvars.sh
-          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=RELEASE -DBUILD_SHARED_LIBS=ON -DGGML_BLAS=ON -DGGML_BLAS_VENDOR=Intel10_64lp -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DGGML_NATIVE=ON -DGGML_AVX2=ON
+          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=RELEASE -DBUILD_SHARED_LIBS=ON -DGGML_BLAS=ON -DGGML_BLAS_VENDOR=Intel10_64lp -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DGGML_NATIVE=ON -DGGML_AVX2=ON -DLLAMA_CURL=ON -DLLAMA_LLGUIDANCE=ON
           cmake --build . --config Release -j $(nproc)
       - name: Pack
         run: |
@@ -54,6 +56,8 @@ jobs:
           echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
           sudo apt-get update
           sudo apt-get install ccache intel-basekit intel-oneapi-mkl intel-oneapi-mkl-devel ninja-build zip -y
+          rustup update stable
+          rustup default stable
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -65,7 +69,7 @@ jobs:
           mkdir -p build
           cd build || exit
           source /opt/intel/oneapi/setvars.sh
-          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=RELEASE -DBUILD_SHARED_LIBS=ON -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DGGML_SYCL=ON -DGGML_AVX2=ON
+          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=RELEASE -DBUILD_SHARED_LIBS=ON -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DGGML_SYCL=ON -DGGML_AVX2=ON -DLLAMA_CURL=ON -DLLAMA_LLGUIDANCE=ON
           cmake --build . --config Release -j $(nproc)
       - name: Pack
         run: |
@@ -88,7 +92,10 @@ jobs:
           cuda: "12.8.0"
           method: network
       - name: Install Deps
-        run: sudo apt-get install ccache ninja-build zip -y
+        run: |
+          sudo apt-get install ccache ninja-build zip -y
+          rustup update stable
+          rustup default stable
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -99,7 +106,7 @@ jobs:
         run: |
           mkdir -p build
           cd build || exit
-          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=RELEASE -DBUILD_SHARED_LIBS=ON -DGGML_CUDA=ON -DGGML_AVX512=ON -DGGML_CUDA_FA_ALL_QUANTS=ON -DCMAKE_CUDA_ARCHITECTURES=86
+          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=RELEASE -DBUILD_SHARED_LIBS=ON -DGGML_CUDA=ON -DGGML_AVX512=ON -DGGML_CUDA_FA_ALL_QUANTS=ON -DCMAKE_CUDA_ARCHITECTURES=86 -DLLAMA_CURL=ON -DLLAMA_LLGUIDANCE=ON
           cmake --build . --config Release -j "$(nproc)"
       - name: Pack
         run: |
