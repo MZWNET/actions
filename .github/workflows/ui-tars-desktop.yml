@@ -50,7 +50,7 @@ jobs:
       - name: Build
         run: |
           pnpm run build
-          ls -alh dist
+          ls -alh out/make
       # - name: Release
       #   uses: softprops/action-gh-release@v2
       #   with:
