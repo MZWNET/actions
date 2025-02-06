@@ -48,14 +48,12 @@ jobs:
       - name: Install Dependencies
         run: pnpm install
       - name: Build
-        run: |
-          pnpm run build
-          ls -alh out/make
-      # - name: Release
-      #   uses: softprops/action-gh-release@v2
-      #   with:
-      #     tag_name: ui-tars-desktop-${{ needs.get_short_commit_hash.outputs.hash }}
-      #     name: Binary Build for UI-TARS Desktop (${{ needs.get_short_commit_hash.outputs.hash }})
-      #     body: This release contains the x86_64 binary of [UI-TARS Desktop](https://github.com/bytedance/UI-TARS-desktop)(Merged bytedance/UI-TARS-desktop#45) (${{ needs.get_short_commit_hash.outputs.hash }}).
-      #     files: build/dist/app.asar
-      #     fail_on_unmatched_files: true
+        run: pnpm run build
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ui-tars-desktop-${{ needs.get_short_commit_hash.outputs.hash }}
+          name: Binary Build for UI-TARS Desktop (${{ needs.get_short_commit_hash.outputs.hash }})
+          body: This release contains the x86_64 binary of [UI-TARS Desktop](https://github.com/bytedance/UI-TARS-desktop)(Merged bytedance/UI-TARS-desktop#45) (${{ needs.get_short_commit_hash.outputs.hash }}).
+          files: out/make/deb/*
+          fail_on_unmatched_files: true
