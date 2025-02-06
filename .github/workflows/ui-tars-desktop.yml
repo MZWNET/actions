@@ -39,7 +39,7 @@ jobs:
       - name: Install Dependencies
         run: |
           pnpm install
-          pnpm add -D electron-builder
+          pnpm add -D -w electron-builder
       - name: Build
         run: |
           pnpm run clean
