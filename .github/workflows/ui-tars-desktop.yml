@@ -50,9 +50,6 @@ jobs:
       - name: Build
         run: |
           pnpm run build
-          sudo apt-get update
-          sudo apt-get install tree
-          tree out/make/deb/
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
