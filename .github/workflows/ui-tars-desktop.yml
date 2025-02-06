@@ -14,6 +14,8 @@ jobs:
         id: checkout
         run: |
           git clone https://github.com/bytedance/UI-TARS-desktop.git .
+          git config user.email "mzwing@mzwing.eu.org"
+          git config user.name "mzwing"
           git remote add linux-support https://github.com/vishwamartur/UI-TARS-desktop.git
           git fetch linux-support
           git merge linux-support/add-linux-support
