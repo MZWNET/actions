@@ -161,7 +161,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Setup VS Dev Environment
-        uses: seanmiddleditch/gha-setup-vsdevenv@v4
+        uses: seanmiddleditch/gha-setup-vsdevenv@v5
       - name: Install CUDA 12.4
         id: install-cuda
         uses: MZWNET/cuda-toolkit@mod
