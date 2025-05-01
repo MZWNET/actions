@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   build_intel_mkl_avx2_linux:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: Install Deps
         run: |
