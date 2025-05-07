@@ -88,7 +88,7 @@ jobs:
         uses: seanmiddleditch/gha-setup-vsdevenv@v4
       - name: Install CUDA 12.1
         id: install-cuda
-        uses: Jimver/cuda-toolkit@v0.2.17
+        uses: Jimver/cuda-toolkit@v0.2.23
         with:
           cuda: "12.1.1"
           method: network
@@ -132,7 +132,7 @@ jobs:
         uses: seanmiddleditch/gha-setup-vsdevenv@v4
       - name: Install CUDA 11.3
         id: install-cuda
-        uses: Jimver/cuda-toolkit@v0.2.17
+        uses: Jimver/cuda-toolkit@v0.2.23
         with:
           cuda: "11.3.1"
           method: network
