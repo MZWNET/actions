@@ -85,7 +85,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Setup VS Dev Environment
-        uses: seanmiddleditch/gha-setup-vsdevenv@v4
+        uses: seanmiddleditch/gha-setup-vsdevenv@v5
       - name: Install CUDA 13.0
         id: install-cuda
         uses: MZWNET/cuda-toolkit@master
@@ -129,7 +129,7 @@ jobs:
     runs-on: windows-2019
     steps:
       - name: Setup VS Dev Environment
-        uses: seanmiddleditch/gha-setup-vsdevenv@v4
+        uses: seanmiddleditch/gha-setup-vsdevenv@v5
       - name: Install CUDA 11.3
         id: install-cuda
         uses: MZWNET/cuda-toolkit@master
