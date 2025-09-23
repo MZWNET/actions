@@ -53,7 +53,7 @@ jobs:
         id: install-cuda
         uses: MZWNET/cuda-toolkit@master
         with:
-          cuda: "13.0.0"
+          cuda: "13.0.1"
           method: network
       - name: Install Deps
         run: sudo apt-get install ccache ninja-build zip -y
@@ -75,7 +75,7 @@ jobs:
           find . -name "*.so" -exec mv {} build/bin/ \;
           mv build/src/libwhisper.so.${{ inputs.version }} build/bin/libwhisper.so
           cd build/bin/ || exit
-          zip ../dist/whisper-v${{ inputs.version }}-bin-linux-avx512-cuda-cu13.0.0-x64.zip ./*
+          zip ../dist/whisper-v${{ inputs.version }}-bin-linux-avx512-cuda-cu13.0.1-x64.zip ./*
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:

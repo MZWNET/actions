@@ -130,7 +130,7 @@ jobs:
         id: install-cuda
         uses: MZWNET/cuda-toolkit@master
         with:
-          cuda: "13.0.0"
+          cuda: "13.0.1"
           method: network
       - name: Install Deps
         run: sudo apt-get install ccache zip ninja-build -y

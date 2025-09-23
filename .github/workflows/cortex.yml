@@ -90,7 +90,7 @@ jobs:
         id: install-cuda
         uses: MZWNET/cuda-toolkit@master
         with:
-          cuda: "13.0.0"
+          cuda: "13.0.1"
           method: network
           sub-packages: '["nvcc", "cudart", "cublas", "cublas_dev", "thrust", "visual_studio_integration"]'
       - name: Setup ccache
@@ -119,12 +119,12 @@ jobs:
         run: |
           cd build\
           cp ..\build_deps\_install\bin\zlib.dll .
-          7z a dist\nitro-${{ inputs.version }}-win-amd64-cuda-12-1-avx512.zip nitro.exe zlib.dll
+          7z a dist\nitro-${{ inputs.version }}-win-amd64-cuda-13-0-avx512.zip nitro.exe zlib.dll
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: cu130-avx512-win
-          path: build/dist/nitro-${{ inputs.version }}-win-amd64-cuda-12-1-avx512.zip
+          path: build/dist/nitro-${{ inputs.version }}-win-amd64-cuda-13-0-avx512.zip
   build_cu113_avx2_win:
     runs-on: windows-2019
     steps:
