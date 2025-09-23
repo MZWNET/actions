@@ -206,15 +206,6 @@ jobs:
         with:
           path: |
             dist/
-      - name: Prepare Release
-        run: |
-          cd dist
-          mv -f clblast-avx2-linux/* .
-          mv -f cu130-avx2-linux/* .
-          mv -f clblast-avx2-win/* .
-          mv -f cu130-avx512-win/* .
-          mv -f cu113-avx2-win/* .
-          rm -rf clblast-avx2-linux cu130-avx2-linux clblast-avx2-win cu130-avx512-win cu113-avx2-win 
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
@@ -222,5 +213,5 @@ jobs:
           name: Binary build for rwkv.cpp (${{ needs.get_short_commit_hash.outputs.hash }})
           body: |
             This release contains the x86_64 binary of [rwkv.cpp](https://github.com/saherNooby/rwkv.cpp).
-          files: dist/*
+          files: dist/**/*
           fail_on_unmatched_files: true
