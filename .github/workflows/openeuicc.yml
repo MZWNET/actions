@@ -1,0 +1,55 @@
+name: Build OpenEUICC
+
+on:
+  push:
+    branches:
+      - '*'
+
+jobs:
+  build-debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository Checkout
+        uses: actions/checkout@v4
+        with:
+          repository: estkme-group/openeuicc
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Decode Secret Signing Configuration
+        run: |
+          echo "${{ secrets.OPENEUICC_SIGNING_KEY_JKS }}" | base64 -d > keystore.jks
+          sudo mkdir -p /keystore
+          sudo mv keystore.jks /keystore/keystore.jks
+          echo "${{ secrets.OPENEUICC_SIGNING_CONFIG }}" | base64 -d > keystore.properties
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build Debug APKs
+        run: ./gradlew --no-daemon assembleRelease :app:assembleReleaseMagiskModuleDir
+
+      - name: Copy Artifacts
+        run: |
+          find . -name 'app*-release.apk' -exec cp {} . \;
+          cp -r app/build/magisk/release ./magisk-release
+
+      - name: Upload APK Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Release APKs
+          compression-level: 0
+          path: app*-release.apk
+
+      - name: Upload Magisk Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: magisk-release
+          compression-level: 0
+          path: magisk-release
