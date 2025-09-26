@@ -39,13 +39,8 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Build Release APKs
+      - name: Build Release
         run: ./gradlew --no-daemon assembleRelease :app:assembleReleaseMagiskModuleDir
-
-      - name: Copy Artifacts
-        run: |
-          find . -name 'app*-release.apk' -exec cp {} . \;
-          cp -r app/build/magisk/release ./magisk-release
 
       - name: Upload Magisk Artifacts
         uses: actions/upload-artifact@v4
