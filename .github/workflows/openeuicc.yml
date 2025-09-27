@@ -42,17 +42,18 @@ jobs:
       - name: Build Release
         run: ./gradlew --no-daemon assembleRelease :app:assembleReleaseMagiskModuleDir
 
+      - name: Prepare Release Assets
+        run: |
+          SAVE_DIR=$(pwd)
+          cd app/build/magisk/release
+          zip -r $SAVE_DIR/Magisk-Module-OpenEUICC-${{ inputs.version }}.zip ./*
+
       - name: Upload Magisk Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Magisk-Module-OpenEUICC-${{ inputs.version }}
           compression-level: 0
-          path: magisk-release
-
-      - name: Prepare Release Assets
-        run: |
-          cd magisk-release
-          zip -r ../Magisk-Module-OpenEUICC-${{ inputs.version }}.zip ./*
+          path: Magisk-Module-OpenEUICC-${{ inputs.version }}.zip
 
       - name: Release
         uses: softprops/action-gh-release@v2
