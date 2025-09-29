@@ -201,7 +201,7 @@ jobs:
     needs: [get_short_commit_hash, build_openblas_avx2_linux, build_sycl_avx2_linux, build_cu130_avx512_linux]
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: |
             dist/
