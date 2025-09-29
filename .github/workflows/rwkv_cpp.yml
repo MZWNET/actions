@@ -202,7 +202,7 @@ jobs:
     needs: [get_short_commit_hash, build_clblast_avx2_linux, build_cu130_avx2_linux, build_clblast_avx2_win, build_cu130_avx512_win, build_cu113_avx2_win]
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: |
             dist/
