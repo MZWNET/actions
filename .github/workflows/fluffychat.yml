@@ -25,7 +25,7 @@ jobs:
           windows_compile_environment: msvc
       - name: Install Ninja
         uses: urkle/action-get-ninja@v1
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: krille-chan/fluffychat
           ref: ${{ inputs.version }}

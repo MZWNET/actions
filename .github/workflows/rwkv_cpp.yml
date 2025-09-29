@@ -32,7 +32,7 @@ jobs:
       - name: Install Deps
         run: sudo apt-get install libclblast-dev ccache ninja-build zip -y
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: RWKV/rwkv.cpp
           submodules: recursive
@@ -65,7 +65,7 @@ jobs:
       - name: Install Deps
         run: sudo apt-get install ccache ninja-build zip -y
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: RWKV/rwkv.cpp
           submodules: recursive
@@ -96,7 +96,7 @@ jobs:
       - name: Install Ninja
         uses: urkle/action-get-ninja@v1
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: RWKV/rwkv.cpp
           submodules: recursive
@@ -139,7 +139,7 @@ jobs:
       - name: Install Ninja
         uses: urkle/action-get-ninja@v1
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: RWKV/rwkv.cpp
           submodules: recursive
@@ -178,7 +178,7 @@ jobs:
       - name: Install Ninja
         uses: urkle/action-get-ninja@v1
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: RWKV/rwkv.cpp
           submodules: recursive
