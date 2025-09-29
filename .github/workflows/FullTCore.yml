@@ -13,7 +13,7 @@ jobs:
           repository: AirportR/FullTCore
           ref: meta
       - name: Setup Go Environment
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: stable
       - name: Prepare
