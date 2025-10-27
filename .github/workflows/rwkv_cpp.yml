@@ -48,7 +48,7 @@ jobs:
           cd build
           zip dist/rwkv-master-${{ needs.get_short_commit_hash.outputs.hash }}-bin-linux-avx2-clblast-x64.zip librwkv.so
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: clblast-avx2-linux
           path: build/dist/rwkv-master-${{ needs.get_short_commit_hash.outputs.hash }}-bin-linux-avx2-clblast-x64.zip
@@ -81,7 +81,7 @@ jobs:
           cd build
           zip dist/rwkv-master-${{ needs.get_short_commit_hash.outputs.hash }}-bin-linux-avx2-cuda130-x64.zip librwkv.so
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: cu130-avx2-linux
           path: build/dist/rwkv-master-${{ needs.get_short_commit_hash.outputs.hash }}-bin-linux-avx2-cuda130-x64.zip
@@ -115,7 +115,7 @@ jobs:
           cp C:/vcpkg/packages/clblast_x64-windows/bin/clblast.dll .
           7z a ..\dist\rwkv-master-${{ needs.get_short_commit_hash.outputs.hash }}-bin-win-avx2-clblast-x64.zip ./*
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: clblast-avx2-win
           path: build/dist/rwkv-master-${{ needs.get_short_commit_hash.outputs.hash }}-bin-win-avx2-clblast-x64.zip
@@ -154,7 +154,7 @@ jobs:
           cd build\bin\
           7z a ..\dist\rwkv-master-${{ needs.get_short_commit_hash.outputs.hash }}-bin-win-avx512-cuda130-x64.zip rwkv.dll
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: cu130-avx512-win
           path: build/dist/rwkv-master-${{ needs.get_short_commit_hash.outputs.hash }}-bin-win-avx512-cuda130-x64.zip
@@ -193,7 +193,7 @@ jobs:
           cd build\bin\
           7z a ..\dist\rwkv-master-${{ needs.get_short_commit_hash.outputs.hash }}-bin-win-avx2-cuda113-x64.zip rwkv.dll
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: cu113-avx2-win
           path: build/dist/rwkv-master-${{ needs.get_short_commit_hash.outputs.hash }}-bin-win-avx2-cuda113-x64.zip

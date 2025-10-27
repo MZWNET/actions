@@ -41,7 +41,7 @@ jobs:
           cd target/release
           7z a ../../dist/appflowy-supabase-${{ needs.get_short_commit_hash.outputs.hash }}.zip appflowy-supabase.exe
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: appflowy-win
           path: dist/appflowy-supabase-${{ needs.get_short_commit_hash.outputs.hash }}.zip

@@ -35,7 +35,7 @@ jobs:
         run: |
           ./scripts/Build.ps1 -NativeExecutable -NativeExecutableType app-image -NativeWayland:$true -GithubToken ${{ secrets.GITHUB_TOKEN }}
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: MiniLPA-Linux-Wayland-AppImage
           path: build/dist/

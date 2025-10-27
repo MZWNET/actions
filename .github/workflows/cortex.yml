@@ -43,7 +43,7 @@ jobs:
           ls -alh
           zip dist/nitro-${{ inputs.version }}-linux-amd64-intel-mkl-avx2.zip nitro
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: intel-mkl-avx2-linux
           path: build/dist/nitro-${{ inputs.version }}-linux-amd64-intel-mkl-avx2.zip
@@ -77,7 +77,7 @@ jobs:
           cd build
           zip dist/nitro-${{ inputs.version }}-linux-amd64-sycl-avx2.zip nitro
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: sycl-avx2-linux
           path: build/dist/nitro-${{ inputs.version }}-linux-amd64-sycl-avx2.zip
@@ -121,7 +121,7 @@ jobs:
           cp ..\build_deps\_install\bin\zlib.dll .
           7z a dist\nitro-${{ inputs.version }}-win-amd64-cuda-13-0-avx512.zip nitro.exe zlib.dll
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: cu130-avx512-win
           path: build/dist/nitro-${{ inputs.version }}-win-amd64-cuda-13-0-avx512.zip
@@ -165,7 +165,7 @@ jobs:
           cp ..\build_deps\_install\bin\zlib.dll .
           7z a dist\nitro-${{ inputs.version }}-win-amd64-cuda-11-3-avx2.zip nitro.exe zlib.dll
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: cu113-avx2-win
           path: build/dist/nitro-${{ inputs.version }}-win-amd64-cuda-11-3-avx2.zip

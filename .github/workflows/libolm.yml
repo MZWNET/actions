@@ -34,7 +34,7 @@ jobs:
           cd build/Release
           7z a ../libolm-release-v${{ inputs.version }}.zip ./olm.dll
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: libolm-win-artifact
           path: |
