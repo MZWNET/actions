@@ -38,7 +38,7 @@ jobs:
           cd nchat/build/bin/
           tar -zcvf ../../../artifacts/nchat-v${{ env.NCHAT_VERSION }}-x86_64-binary.tar.gz .
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: tar_gz
           path: artifacts/nchat-v${{ env.NCHAT_VERSION }}-x86_64-binary.tar.gz
@@ -72,7 +72,7 @@ jobs:
           mkdir -p dist
           mv ${{ steps.pack_deb.outputs.file_name }} dist/
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: deb
           path: dist/*
@@ -104,7 +104,7 @@ jobs:
           mkdir -p dist
           mv ${{ steps.pack_zst.outputs.pkgfile0 }} dist/
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: zst
           path: dist/*

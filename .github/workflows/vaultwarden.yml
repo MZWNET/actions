@@ -52,7 +52,7 @@ jobs:
           cd ../arm64/
           tar -zcvf ../../vaultwarden-arm64-binary.tar.gz .
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: tar_gz
           path: |
@@ -98,7 +98,7 @@ jobs:
           depends: "libc6"
           desc: "Unofficial Bitwarden compatible server written in Rust, formerly known as bitwarden_rs"
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: deb-amd64
           path: ${{ steps.pack_amd64_deb.outputs.file_name }}
@@ -140,7 +140,7 @@ jobs:
           depends: "libc6"
           desc: "Unofficial Bitwarden compatible server written in Rust, formerly known as bitwarden_rs"
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: deb-arm64
           path: ${{ steps.pack_arm64_deb.outputs.file_name }}
