@@ -174,7 +174,7 @@ jobs:
     needs: [build_intel_mkl_avx2_linux, build_sycl_avx2_linux, build_cu130_avx512_win, build_cu113_avx2_win]
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           path: |
             dist/
