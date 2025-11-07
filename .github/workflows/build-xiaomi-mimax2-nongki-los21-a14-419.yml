@@ -1,0 +1,39 @@
+name: Build Xiaomi Mi Max 2 LOS21(A14) 4.19 Kernel (Non-GKI)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository Checkout
+        uses: actions/checkout@v5
+
+      - name: Run script
+        run: |
+          mkdir -p build zip
+          cp assets/build-xiaomi-mimax2-los21-a14-419.sh build/
+          cd build
+          bash build-xiaomi-mimax2-los21-a14-419.sh
+          mv *.zip ../zip/
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v5
+        with:
+          name: Xiaomi-Mi-Max-2-NonGKI-LOS21-A14-4.19
+          compression-level: 0
+          path: zip/*
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: oxygen-los21-419-nongki-sukisu-susfs
+          name: Build for Xiaomi Mi Max 2 LOS21(A14) 4.19 Kernel (Non-GKI)
+          body: |
+            This release contains the build for Xiaomi Mi Max 2 LOS21(A14) 4.19 Kernel (Non-GKI), with SukiSU Ultra and SuSFS enabled.
+          files: zip/*
+          fail_on_unmatched_files: true
