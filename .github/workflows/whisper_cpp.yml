@@ -22,7 +22,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install ccache intel-basekit intel-oneapi-mkl intel-oneapi-mkl-devel ninja-build zip -y
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: ggerganov/whisper.cpp
           submodules: recursive
@@ -58,7 +58,7 @@ jobs:
       - name: Install Deps
         run: sudo apt-get install ccache ninja-build zip -y
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: ggerganov/whisper.cpp
           submodules: recursive
