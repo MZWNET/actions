@@ -16,12 +16,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: EsimMoe/MiniLPA
           ref: ${{ inputs.version }}
       - name: Checkout JetBrains Setup
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: ShiinaSekiu/github-actions-jbr-setup
           ref: jdk
