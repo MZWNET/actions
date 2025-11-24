@@ -22,7 +22,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install ccache intel-basekit intel-oneapi-mkl intel-oneapi-mkl-devel ninja-build zip -y
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: janhq/nitro
           submodules: recursive
@@ -57,7 +57,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install ccache intel-basekit intel-oneapi-mkl intel-oneapi-mkl-devel ninja-build zip -y
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: janhq/nitro
           submodules: recursive
@@ -100,7 +100,7 @@ jobs:
       - name: Install Ninja
         uses: urkle/action-get-ninja@v1
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: janhq/nitro
           submodules: recursive
@@ -144,7 +144,7 @@ jobs:
       - name: Install Ninja
         uses: urkle/action-get-ninja@v1
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: janhq/nitro
           submodules: recursive

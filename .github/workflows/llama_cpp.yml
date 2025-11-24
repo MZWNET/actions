@@ -24,7 +24,7 @@ jobs:
           rustup update stable
           rustup default stable
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: ggerganov/llama.cpp
           submodules: recursive
@@ -59,7 +59,7 @@ jobs:
           rustup update stable
           rustup default stable
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: ggerganov/llama.cpp
           submodules: recursive
@@ -97,7 +97,7 @@ jobs:
           rustup update stable
           rustup default stable
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: ggerganov/llama.cpp
           submodules: recursive
