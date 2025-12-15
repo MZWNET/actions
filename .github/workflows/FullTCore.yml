@@ -21,7 +21,7 @@ jobs:
       - name: Build
         run: GOARCH=arm64 GOARM=7 go build -tags with_gvisor -ldflags="-s -w" -o ./output/fulltclash-meta-ubuntu-latest-arm64 fulltclash.go
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: fulltcore-ubuntu-latest-arm64-artifact
           path: ./output/*
