@@ -43,7 +43,7 @@ jobs:
           cd build/bin/ || exit
           zip ../dist/llama-${{ inputs.version }}-bin-linux-avx2-intel-mkl-x64.zip ./*
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: intel-mkl-avx2-linux
           path: build/dist/*
@@ -78,7 +78,7 @@ jobs:
           cd build/bin/ || exit
           zip ../dist/llama-${{ inputs.version }}-bin-linux-avx2-sycl-x64.zip ./*
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: sycl-avx2-linux
           path: build/dist/*
@@ -115,7 +115,7 @@ jobs:
           cd build/bin/ || exit
           zip ../dist/llama-${{ inputs.version }}-bin-linux-avx512-cuda-cu13.0.1-x64.zip ./*
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: cu130-avx512-linux
           path: build/dist/*
