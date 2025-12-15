@@ -22,7 +22,7 @@ jobs:
           mv *.zip ../zip/
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: Xiaomi-Mi-Max-2-NonGKI-LOS21-A14-4.19
           compression-level: 0
