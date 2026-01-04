@@ -1,6 +1,7 @@
 name: Build OpenEUICC
 
 on:
+  workflow_dispatch:
 
 permissions:
   contents: write
