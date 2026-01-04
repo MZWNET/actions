@@ -53,8 +53,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: GPSRider
-          compression-level: 0
-          path: app/build/outputs/apk/release/app.apk
+          path: app/build/outputs/apk/release/app-release.apk
 
       - name: Release
         uses: softprops/action-gh-release@v2
@@ -63,5 +62,5 @@ jobs:
           name: Binary build for GPSRider (${{ needs.get_short_commit_hash.outputs.hash }})
           body: |
             This release contains the release-build apk of [GPSRider](https://github.com/RomanK2311/GPSRider).
-          files: app/build/outputs/apk/release/app.apk
+          files: app/build/outputs/apk/release/app-release.apk
           fail_on_unmatched_files: true
