@@ -1,4 +1,4 @@
-name: Build OpenEUICC
+name: Build GPSRider
 
 on:
   workflow_dispatch:
