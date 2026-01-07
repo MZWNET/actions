@@ -215,7 +215,9 @@ jobs:
           cmake --build . --config Release -j $(sysctl -n hw.physicalcpu)
       - name: Pack
         run: |
+          ls -alh .
           cd build/bin/
+          ls -alh .
           zip ../dist/sd-master-${{ needs.get_short_commit_hash.outputs.hash }}-bin-macos-metal-arm64.zip .
       - name: Upload Artifacts
         uses: actions/upload-artifact@v6
