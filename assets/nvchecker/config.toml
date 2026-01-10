@@ -22,6 +22,11 @@ source = "github"
 github = "ggml-org/llama.cpp"
 use_latest_release = true
 
+[minilpa]
+source = "github"
+github = "EsimMoe/MiniLPA"
+use_latest_release = true
+
 [nchat]
 source = "github"
 github = "d99kris/nchat"
