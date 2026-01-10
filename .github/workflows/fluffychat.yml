@@ -47,6 +47,9 @@ jobs:
       - name: Build
         run: flutter build windows --release
 
+      - name: Prepare Get LibOlm Tag
+        run: pip install requests
+
       - name: Get LibOlm Tag
         id: get-libolm-tag
         shell: python
