@@ -65,7 +65,7 @@ jobs:
               if "libolm" in release["tag_name"]:
                   libOlmVersion = release["tag_name"].replace("libolm-", "")
                   break
-          subprocess.run(f'echo libolm-version={tagName} >> $GITHUB_OUTPUT', shell=True, check=True)
+          subprocess.run(f'echo libolm-version={libOlmVersion} >> $GITHUB_OUTPUT', shell=True, check=True)
 
       - name: Add LibOlm DLL
         run: |
