@@ -11,6 +11,7 @@ on:
       - "tools/update_callback/**"
 
 permissions:
+  actions: write
   contents: write
 
 jobs:
