@@ -17,7 +17,7 @@ async function getUpdateInfo(
     Deno.exit(1);
   }
 
-  let results: ResultItem[];
+  let results: ResultItem[] | [];
   try {
     results = JSON.parse(resultJsonContent);
   } catch (e) {
@@ -59,6 +59,10 @@ async function getUpdateInfo(
   }
 
   // Process results
+  if (results.length === 0) {
+    console.warn("No results found in result.json");
+    Deno.exit(0);
+  }
   for (const item of results) {
     const name = item.name;
     const configItem = config[name];
