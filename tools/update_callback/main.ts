@@ -34,7 +34,7 @@ async function main() {
         `[Dry Run] Would trigger workflow for ${item.name} with version ${item.newver}`,
       );
     } else {
-      await triggerWorkflow(item.name, item.newver, args.token, args.repo);
+      await triggerWorkflow(item.name, item.newver, args.token, args.repo, "master");
     }
   }
 }

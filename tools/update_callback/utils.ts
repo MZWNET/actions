@@ -87,11 +87,12 @@ async function triggerWorkflow(
   version: string,
   token: string,
   repo: string,
+  ref: string,
 ) {
   const url =
     `https://api.github.com/repos/${repo}/actions/workflows/${name}.yml/dispatches`;
   const body = {
-    ref: "main",
+    ref: ref,
     inputs: {
       version: version,
     },
