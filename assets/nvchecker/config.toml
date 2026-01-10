@@ -2,29 +2,14 @@
 oldver = "old_ver.json"
 newver = "new_ver.json"
 
-[alist]
-source = "github"
-github = "alist-org/alist"
-use_latest_release = true
-
-[appflowy-supabase]
-source = "github"
-github = "AppFlowy-IO/AppFlowy-Supabase"
-
-[cortex]
-source = "github"
-github = "janhq/cortex"
-use_latest_release = true
-
 [fluffychat]
 source = "github"
 github = "krille-chan/fluffychat"
 use_latest_release = true
 
-[FullTCore]
+[gpsrider]
 source = "github"
-github = "AirportR/FullTCore"
-branch = "meta"
+github = "RomanK2311/GPSRider"
 
 [libolm]
 source = "gitlab"
@@ -32,24 +17,9 @@ gitlab = "matrix-org/olm"
 host = "gitlab.matrix.org"
 use_max_tag = true
 
-[llama_cpp_deepseek_v2]
-source = "github"
-github = "fairydreaming/llama.cpp"
-branch = "deepseek-v2"
-
-[llama_cpp_gg_add-phixtral]
-source = "github"
-github = "ggerganov/llama.cpp"
-branch = "gg/add-phixtral"
-
-[llama_cpp_minicpm_v]
-source = "github"
-github = "Achazwl/llama.cpp"
-branch = "feat-minicpmv"
-
 [llama_cpp]
 source = "github"
-github = "ggerganov/llama.cpp"
+github = "ggml-org/llama.cpp"
 use_latest_release = true
 
 [nchat]
@@ -57,24 +27,23 @@ source = "github"
 github = "d99kris/nchat"
 use_latest_release = true
 
-[open-webui]
-source = "github"
-github = "open-webui/open-webui"
-use_latest_release = true
-
-[rwkv_cpp]
-source = "github"
-github = "saharNooby/rwkv.cpp"
-
-[serenity]
-source = "github"
-github = "SagerNet/serenity"
+[openeuicc]
+source = "gitea"
+gitea = "PeterCxy/OpenEUICC"
+host = "gitea.angry.im"
+use_max_tag = true
 
 [stable-diffusion_cpp]
 source = "github"
 github = "leejet/stable-diffusion.cpp"
+use_latest_release = true
 
 [vaultwarden]
 source = "github"
 github = "dani-garcia/vaultwarden"
+use_latest_release = true
+
+[whisper_cpp]
+source = "github"
+github = "ggml-org/whisper.cpp"
 use_latest_release = true

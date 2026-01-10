@@ -19,26 +19,30 @@ jobs:
         uses: Chocobo1/setup-ccache-action@v1
         with:
           windows_compile_environment: msvc
+
       - name: Install Ninja
         uses: urkle/action-get-ninja@v1
+
       - name: Checkout
-        run: |
-          git clone https://gitlab.matrix.org/matrix-org/olm.git . --depth=1 -b ${{ inputs.version }}
-          rm -Recurse -Force .git
+        run: git clone https://gitlab.matrix.org/matrix-org/olm.git . --depth=1 -b ${{ inputs.version }}
+
       - name: Build
         run: |
           cmake . -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release -Bbuild
           cmake --build build --config Release
+
       - name: Pack
         run: |
           cd build/Release
           7z a ../libolm-release-v${{ inputs.version }}.zip ./olm.dll
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v6
         with:
           name: libolm-win-artifact
           path: |
             build/libolm-release-v${{ inputs.version }}.zip
+
       - name: Release
         uses: softprops/action-gh-release@v2
         with:

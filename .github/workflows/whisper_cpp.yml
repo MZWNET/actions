@@ -12,7 +12,21 @@ permissions:
   contents: write
 
 jobs:
+  ersion:
+    runs-on: ubuntu-latest
+    outputs:
+      ersion: ${{ steps.ersion.outputs.ersion }}
+    steps:
+      - name: Process Version for No v Prefix
+        id: ersion
+        shell: python
+        run: |
+          import subprocess
+          version = "${{ inputs.version }}"
+          ersion = version.replace("v", "")
+          subprocess.run(f'echo ersion={ersion} >> $GITHUB_OUTPUT', shell=True, check=True)
   build_sycl_avx2_linux:
+    needs: ersion
     runs-on: ubuntu-latest
     steps:
       - name: Install Deps
@@ -21,12 +35,14 @@ jobs:
           echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
           sudo apt-get update
           sudo apt-get install ccache intel-basekit intel-oneapi-mkl intel-oneapi-mkl-devel ninja-build zip -y
+
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          repository: ggerganov/whisper.cpp
+          repository: ggml-org/whisper.cpp
           submodules: recursive
-          ref: v${{ inputs.version }}
+          ref: ${{ inputs.version }}
+
       - name: Build
         run: |
           mkdir -p build
@@ -34,19 +50,23 @@ jobs:
           source /opt/intel/oneapi/setvars.sh
           cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=RELEASE -DBUILD_SHARED_LIBS=ON -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DGGML_SYCL=ON -DGGML_AVX2=ON
           cmake --build . --config Release -j $(nproc)
+
       - name: Pack
         run: |
           mkdir -p build/dist
           find . -name "*.so" -exec mv {} build/bin/ \;
-          mv build/src/libwhisper.so.${{ inputs.version }} build/bin/libwhisper.so
+          mv build/src/libwhisper.so.${{ needs.ersion.outputs.ersion }} build/bin/libwhisper.so
           cd build/bin/ || exit
-          zip ../dist/whisper-v${{ inputs.version }}-bin-linux-avx2-sycl-x64.zip ./*
+          zip ../dist/whisper-${{ inputs.version }}-bin-linux-avx2-sycl-x64.zip ./*
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v6
         with:
           name: sycl-avx2-linux
           path: build/dist/*
+
   build_cu130_avx512_linux:
+    needs: ersion
     runs-on: ubuntu-latest
     steps:
       - name: Install CUDA
@@ -55,47 +75,54 @@ jobs:
         with:
           cuda: "13.0.1"
           method: network
+
       - name: Install Deps
         run: sudo apt-get install ccache ninja-build zip -y
+
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          repository: ggerganov/whisper.cpp
+          repository: ggml-org/whisper.cpp
           submodules: recursive
-          ref: v${{ inputs.version }}
+          ref: ${{ inputs.version }}
+
       - name: Build
         run: |
           mkdir -p build
           cd build || exit
           cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=RELEASE -DBUILD_SHARED_LIBS=ON -DGGML_CUDA=ON -DGGML_AVX512=ON -DGGML_CUDA_FA_ALL_QUANTS=ON -DCMAKE_CUDA_ARCHITECTURES=86
           cmake --build . --config Release -j "$(nproc)"
+
       - name: Pack
         run: |
           mkdir -p build/dist
           find . -name "*.so" -exec mv {} build/bin/ \;
-          mv build/src/libwhisper.so.${{ inputs.version }} build/bin/libwhisper.so
+          mv build/src/libwhisper.so.${{ needs.ersion.outputs.ersion }} build/bin/libwhisper.so
           cd build/bin/ || exit
-          zip ../dist/whisper-v${{ inputs.version }}-bin-linux-avx512-cuda-cu13.0.1-x64.zip ./*
+          zip ../dist/whisper-${{ inputs.version }}-bin-linux-avx512-cuda-cu13.0.1-x64.zip ./*
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v6
         with:
           name: cu130-avx512-linux
           path: build/dist/*
+
   release:
     runs-on: ubuntu-latest
-    needs: [build_sycl_avx2_linux, build_cu130_avx512_linux]
+    needs: [ersion, build_sycl_avx2_linux, build_cu130_avx512_linux]
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v7
         with:
           path: |
             dist/
+
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: whisper_cpp-v${{ inputs.version }}
-          name: Binary build for whisper.cpp (v${{ inputs.version }})
+          tag_name: whisper_cpp-${{ inputs.version }}
+          name: Binary build for whisper.cpp (${{ inputs.version }})
           body: |
-            This release contains the x86_64 binary of [whisper.cpp](https://github.com/ggerganov/whisper.cpp).
+            This release contains the x86_64 binary of [whisper.cpp](https://github.com/ggml-org/whisper.cpp).
           files: dist/**/*
           fail_on_unmatched_files: true

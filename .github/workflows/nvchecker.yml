@@ -8,42 +8,63 @@ on:
     paths:
       - "assets/nvchecker/config.toml"
       - ".github/workflows/nvchecker.yml"
+      - "tools/update_callback/**"
+
+permissions:
+  contents: write
 
 jobs:
-  check-versions:
+  update:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
-    - name: Checkout
-      uses: actions/checkout@v6
-    - name: Checkout
-      uses: actions/checkout@v6
-      with:
-        ref: nvchecker
-        path: cache
-    - name: Prepare
-      run: |
-        mv cache/*.json assets/nvchecker/
-        rm -rf cache
-    - name: Install nvchecker
-      run: |
-        pip install httpx[http2] nvchecker
-        pip uninstall pycurl -y
-    - name: Check update
-      run: |
-        nvchecker -c assets/nvchecker/config.toml
-        nvcmp --file assets/nvchecker/config.toml > assets/nvchecker/result.cmp
-        nvtake -c assets/nvchecker/config.toml --all
-    - name: Commit version record files
-      run: |
-        cd assets/nvchecker
-        git init
-        git config --local user.email "actions@github.com"
-        git config --local user.name "GitHub Actions Bot"
-        git remote add origin https://github-action:${{ secrets.GITHUB_TOKEN }}@github.com/MZWNET/actions.git
-        git branch -M nvchecker
-        git add ./*.json
-        git commit -m "chore: update version record files changes"
-        git push -f origin nvchecker
-        rm -rf .git
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: nvchecker
+          path: cache
+
+      - name: Prepare Version Record Files
+        run: |
+          mv cache/*.json assets/nvchecker/
+          rm -rf cache
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "cpython-3.12.12"
+
+      - name: Install nvchecker
+        run: uv tool install nvchecker
+
+      - name: Check update
+        run: |
+          nvchecker -c assets/nvchecker/config.toml
+          nvcmp -c assets/nvchecker/config.toml -j > tools/update_callback/result.json
+          nvtake -c assets/nvchecker/config.toml --all
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: lts
+          cache: true
+
+      - name: Trigger Actions
+        working-directory: tools/update_callback
+        run: |
+          deno install
+          deno task start --token "${{ secrets.GITHUB_TOKEN }}" --repo "MZWNET/actions"
+
+      - name: Commit Version Record Files
+        working-directory: assets/nvchecker
+        run: |
+          git init
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions Bot"
+          git remote add origin https://github-action:${{ secrets.GITHUB_TOKEN }}@github.com/MZWNET/actions.git
+          git branch -M nvchecker
+          git add new_ver.json old_ver.json
+          git commit -m "chore: update version record files changes"
+          git push -f origin nvchecker

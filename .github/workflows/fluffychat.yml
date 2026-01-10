@@ -7,10 +7,6 @@ on:
         description: "Release version"
         required: true
         type: string
-      libolm-version:
-        description: "libolm version"
-        required: true
-        type: string
 
 permissions:
   contents: write
@@ -23,38 +19,68 @@ jobs:
         uses: Chocobo1/setup-ccache-action@v1
         with:
           windows_compile_environment: msvc
+
       - name: Install Ninja
         uses: urkle/action-get-ninja@v1
-      - uses: actions/checkout@v6
+
+      - name: Checkout
+        uses: actions/checkout@v6
         with:
           repository: krille-chan/fluffychat
           ref: ${{ inputs.version }}
+          submodules: recursive
+          fetch-depth: 0
+
       - name: Export env
         id: env
         run: cat .github/workflows/versions.env >> $GITHUB_OUTPUT
+
       - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ steps.env.outputs.FLUTTER_VERSION }}
           cache: true
+
       - name: Install Package Dependencies
         run: flutter pub get
+
       - name: Build
         run: flutter build windows --release
-      - name: Add Olm DLL
+
+      - name: Get LibOlm Tag
+        id: get-libolm-tag
+        shell: python
         run: |
-          curl -L -o libolm-release-v${{ inputs.libolm-version }}.zip https://github.com/MZWNET/actions/releases/download/libolm-v${{ inputs.libolm-version }}/libolm-release-v${{ inputs.libolm-version }}.zip
-          7z x libolm-release-v${{ inputs.libolm-version }}.zip build/windows/x64/runner/Release/
-          rm -Force libolm-release-v${{ inputs.libolm-version }}.zip
+          import requests
+          import os
+          import subprocess
+          token = os.environ.get("GITHUB_TOKEN")
+          headers = {"Authorization": f"Bearer {token}"} if token else {}
+          data = requests.get("https://api.github.com/repos/MZWNET/actions/releases?per_page=50", headers=headers).json()
+          libOlmVersion = ""
+          for release in data:
+              if "libolm" in release["tag_name"]:
+                  libOlmVersion = release["tag_name"].replace("libolm-", "")
+                  break
+          subprocess.run(f'echo libolm-version={tagName} >> $GITHUB_OUTPUT', shell=True, check=True)
+
+      - name: Add LibOlm DLL
+        run: |
+          curl -L -o libolm-release-${{ steps.get-libolm-tag.outputs.libolm-version }}.zip https://github.com/MZWNET/actions/releases/download/libolm-${{ steps.get-libolm-tag.outputs.libolm-version }}/libolm-release-${{ steps.get-libolm-tag.outputs.libolm-version }}.zip
+          7z x libolm-release-${{ steps.get-libolm-tag.outputs.libolm-version }}.zip build/windows/x64/runner/Release/
+          rm -Force libolm-release-${{ steps.get-libolm-tag.outputs.libolm-version }}.zip
+
       - name: Pack
         run: |
           cd build/windows/x64/runner/Release/
           7z a ../../../../fluffychat-win-${{ inputs.version }}.zip .
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v6
         with:
           name: win-artifact
           path: build/fluffychat-win-${{ inputs.version }}.zip
+
       - name: Release
         uses: softprops/action-gh-release@v2
         with:

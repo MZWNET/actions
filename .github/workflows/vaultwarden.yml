@@ -21,6 +21,7 @@ jobs:
           chmod +x docker-image-extract
           mkdir x86_64 armv6 armv7 arm64
           mkdir -p dist/x86_64 dist/armv6 dist/armv7 dist/arm64
+
       - name: Pull & Extract
         run: |
           cd x86_64
@@ -31,6 +32,7 @@ jobs:
           ../docker-image-extract -p linux/arm/v7 vaultwarden/server:${{ inputs.version }}
           cd ../arm64
           ../docker-image-extract -p linux/arm64 vaultwarden/server:${{ inputs.version }}
+
       - name: Clean
         run: |
           cp x86_64/output/vaultwarden dist/x86_64
@@ -41,6 +43,7 @@ jobs:
           cp -r armv6/output/web-vault dist/armv6
           cp -r armv7/output/web-vault dist/armv7
           cp -r arm64/output/web-vault dist/arm64
+
       - name: Pack
         run: |
           cd dist/x86_64/
@@ -51,6 +54,7 @@ jobs:
           tar -zcvf ../../vaultwarden-armv7-binary.tar.gz .
           cd ../arm64/
           tar -zcvf ../../vaultwarden-arm64-binary.tar.gz .
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v6
         with:
@@ -60,6 +64,7 @@ jobs:
             vaultwarden-armv6-binary.tar.gz
             vaultwarden-armv7-binary.tar.gz
             vaultwarden-arm64-binary.tar.gz
+
   pack_deb_amd64:
     runs-on: ubuntu-latest
     needs: extract
@@ -68,11 +73,13 @@ jobs:
         uses: actions/checkout@v6
         with:
           path: resources
+
       - name: Download Artifacts
         uses: actions/download-artifact@v7
         with:
           path: |
             artifacts/
+
       - name: Prepare
         run: |
           mkdir cache
@@ -86,6 +93,7 @@ jobs:
           touch etc/vaultwarden/vaultwarden.env
           mkdir -p etc/systemd/system/
           cp ../resources/assets/deb-resources/vaultwarden.service etc/systemd/system/
+
       - name: Pack deb
         id: pack_amd64_deb
         uses: jiro4989/build-deb-action@v4
@@ -97,11 +105,13 @@ jobs:
           arch: amd64
           depends: "libc6"
           desc: "Unofficial Bitwarden compatible server written in Rust, formerly known as bitwarden_rs"
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v6
         with:
           name: deb-amd64
           path: ${{ steps.pack_amd64_deb.outputs.file_name }}
+
   pack_deb_arm64:
     runs-on: ubuntu-latest
     needs: extract
@@ -110,11 +120,13 @@ jobs:
         uses: actions/checkout@v6
         with:
           path: resources
+
       - name: Download Artifacts
         uses: actions/download-artifact@v7
         with:
           path: |
             artifacts/
+
       - name: Prepare
         run: |
           mkdir cache
@@ -128,6 +140,7 @@ jobs:
           touch etc/vaultwarden/vaultwarden.env
           mkdir -p etc/systemd/system/
           cp ../resources/assets/deb-resources/vaultwarden.service etc/systemd/system/
+
       - name: Pack deb
         id: pack_arm64_deb
         uses: jiro4989/build-deb-action@v4
@@ -139,11 +152,13 @@ jobs:
           arch: arm64
           depends: "libc6"
           desc: "Unofficial Bitwarden compatible server written in Rust, formerly known as bitwarden_rs"
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v6
         with:
           name: deb-arm64
           path: ${{ steps.pack_arm64_deb.outputs.file_name }}
+
   release:
     runs-on: ubuntu-latest
     needs: [extract, pack_deb_amd64, pack_deb_arm64]
@@ -153,6 +168,7 @@ jobs:
         with:
           path: |
             artifacts/
+
       - name: Release
         uses: softprops/action-gh-release@v2
         with:

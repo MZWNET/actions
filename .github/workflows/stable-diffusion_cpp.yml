@@ -2,61 +2,51 @@ name: Build stable-diffusion.cpp
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version"
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 jobs:
-  get_short_commit_hash:
-    runs-on: ubuntu-latest
-    outputs:
-      hash: ${{ steps.short_commit_hash.outputs.short }}
-    steps:
-      - name: Prepare commit hash
-        id: commit_hash
-        run: |
-          git clone https://github.com/leejet/stable-diffusion.cpp cache --depth 1
-          cd cache
-          echo "hash=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
-          cd ..
-          rm -rf cache
-      - name: Get short commit hash
-        id: short_commit_hash
-        uses: prompt/actions-commit-hash@v3
-        with:
-          commit: ${{ steps.commit_hash.outputs.hash }}
   build_openblas_avx2_linux:
-    needs: get_short_commit_hash
     runs-on: ubuntu-latest
     steps:
       - name: Install Deps
         run: |
           sudo apt-get update
           sudo apt-get install ccache ninja-build libopenblas-dev zip -y
+
       - name: Checkout
         uses: actions/checkout@v6
         with:
           repository: leejet/stable-diffusion.cpp
           submodules: recursive
+
       - name: Build
         run: |
           mkdir build
           cd build
           cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DGGML_BLAS=ON -DGGML_BLAS_VENDOR=OpenBLAS -DGGML_AVX2=ON -DSD_BUILD_SHARED_LIBS=ON -DSD_BUILD_SHARED_GGML_LIB=ON
           cmake --build . --config Release -j $(nproc)
+
       - name: Pack
         run: |
           mkdir -p build/dist
           find . -name "*.so" -exec mv {} build/bin/ \;
           cd build/bin/ || exit
-          zip ../dist/sd-master-${{ needs.get_short_commit_hash.outputs.hash }}-bin-linux-openblas-avx2-x64.zip ./*
+          zip ../dist/sd-${{ inputs.version }}-bin-linux-openblas-avx2-x64.zip ./*
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v6
         with:
           name: openblas-avx2-linux
           path: build/dist/*
+
   build_sycl_avx2_linux:
-    needs: get_short_commit_hash
     runs-on: ubuntu-latest
     steps:
       - name: Install Deps
@@ -65,11 +55,13 @@ jobs:
           echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
           sudo apt-get update
           sudo apt-get install ccache intel-basekit intel-oneapi-mkl intel-oneapi-mkl-devel ninja-build zip -y
+
       - name: Checkout
         uses: actions/checkout@v6
         with:
           repository: leejet/stable-diffusion.cpp
           submodules: recursive
+
       - name: Build
         run: |
           mkdir build
@@ -77,53 +69,21 @@ jobs:
           source /opt/intel/oneapi/setvars.sh
           cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DSD_SYCL=ON -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DGGML_AVX2=ON -DSD_BUILD_SHARED_LIBS=ON -DSD_BUILD_SHARED_GGML_LIB=ON
           cmake --build . --config Release -j $(nproc)
+
       - name: Pack
         run: |
           mkdir -p build/dist
           find . -name "*.so" -exec mv {} build/bin/ \;
           cd build/bin/ || exit
-          zip ../dist/sd-master-${{ needs.get_short_commit_hash.outputs.hash }}-bin-linux-sycl-avx2-x64.zip ./*
+          zip ../dist/sd-${{ inputs.version }}-bin-linux-sycl-avx2-x64.zip ./*
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v6
         with:
           name: sycl-avx2-linux
           path: build/dist/*
-  # build_cu124_avx2_linux:
-  #   needs: get_short_commit_hash
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Install CUDA 12.4.1
-  #       id: install-cuda
-  #       uses: MZWNET/cuda-toolkit@master
-  #       with:
-  #         cuda: "12.4.1"
-  #         method: network
-  #     - name: Install Deps
-  #       run: sudo apt-get install ccache zip ninja-build -y
-  #     - name: Checkout
-  #       uses: actions/checkout@v6
-  #       with:
-  #         repository: leejet/stable-diffusion.cpp
-  #         submodules: recursive
-  #     - name: Build
-  #       run: |
-  #         mkdir build
-  #         cd build
-  #         cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DSD_CUDA=ON -DSD_FAST_SOFTMAX=ON -DGGML_AVX512=ON -DSD_BUILD_SHARED_LIBS=ON -DSD_BUILD_SHARED_GGML_LIB=ON
-  #         cmake --build . --config Release -j $(nproc)
-  #     - name: Pack
-  #       run: |
-  #         mkdir -p build/dist
-  #         find . -name "*.so" -exec mv {} build/bin/ \;
-  #         cd build/bin/ || exit
-  #         zip ../dist/sd-master-${{ needs.get_short_commit_hash.outputs.hash }}-bin-linux-avx2-cublas-cu124-x64.zip ./*
-  #     - name: Upload Artifacts
-  #       uses: actions/upload-artifact@v6
-  #       with:
-  #         name: cu124-avx2-linux
-  #         path: build/dist/*
+
   build_cu130_avx512_linux:
-    needs: get_short_commit_hash
     runs-on: ubuntu-latest
     steps:
       - name: Install CUDA
@@ -132,112 +92,89 @@ jobs:
         with:
           cuda: "13.0.1"
           method: network
+
       - name: Install Deps
         run: sudo apt-get install ccache zip ninja-build -y
+
       - name: Checkout
         uses: actions/checkout@v6
         with:
           repository: leejet/stable-diffusion.cpp
           submodules: recursive
+
       - name: Build
         run: |
           mkdir build
           cd build
           cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DSD_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=86 -DSD_FAST_SOFTMAX=ON -DGGML_AVX512=ON -DSD_BUILD_SHARED_LIBS=ON -DSD_BUILD_SHARED_GGML_LIB=ON
           cmake --build . --config Release -j $(nproc)
+
       - name: Pack
         run: |
           mkdir -p build/dist
           find . -name "*.so" -exec mv {} build/bin/ \;
           cd build/bin/ || exit
-          zip ../dist/sd-master-${{ needs.get_short_commit_hash.outputs.hash }}-bin-linux-avx512-cublas-cu130-x64.zip ./*
+          zip ../dist/sd-${{ inputs.version }}-bin-linux-avx512-cublas-cu130-x64.zip ./*
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v6
         with:
           name: cu130-avx512-linux
           path: build/dist/*
-  # build_cu124_avx512_win:
-  #   needs: get_short_commit_hash
-  #   runs-on: windows-latest
-  #   steps:
-  #     - name: Setup VS Dev Environment
-  #       uses: seanmiddleditch/gha-setup-vsdevenv@v5
-  #     - name: Install CUDA 12.4
-  #       id: install-cuda
-  #       uses: MZWNET/cuda-toolkit@master
-  #       with:
-  #         cuda: "12.4.1"
-  #         method: network
-  #         sub-packages: '["nvcc", "cudart", "cublas", "cublas_dev", "thrust", "visual_studio_integration"]'
-  #     - name: Setup ccache
-  #       uses: Chocobo1/setup-ccache-action@v1
-  #       with:
-  #         windows_compile_environment: msvc
-  #     - name: Install Ninja
-  #       uses: urkle/action-get-ninja@v1
-  #     - name: Checkout
-  #       uses: actions/checkout@v6
-  #       with:
-  #         repository: leejet/stable-diffusion.cpp
-  #         submodules: recursive
-  #     - name: Build
-  #       run: |
-  #         mkdir build
-  #         cd build
-  #         cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DSD_CUBLAS=ON -DCMAKE_CUDA_ARCHITECTURES=86 -DSD_FAST_SOFTMAX=ON -DGGML_AVX512=ON -DSD_BUILD_SHARED_LIBS=ON -DSD_BUILD_SHARED_GGML_LIB=ON
-  #         cmake --build . --config Release -j $env:NUMBER_OF_PROCESSORS
-  #     - name: Pack
-  #       run: |
-  #         cd build\bin\
-  #         7z a ..\dist\sd-master-${{ needs.get_short_commit_hash.outputs.hash }}-bin-win-avx512-cublas-cu124-x64.zip .
-  #     - name: Upload Artifacts
-  #       uses: actions/upload-artifact@v6
-  #       with:
-  #         name: cu124-avx512-win
-  #         path: build/dist/*
+
   build_metal_macos:
-    needs: get_short_commit_hash
     runs-on: macos-latest
     steps:
       - name: Install Deps
         run: |
           brew install zip ccache ninja
+
       - name: Checkout
         uses: actions/checkout@v6
         with:
           repository: leejet/stable-diffusion.cpp
           submodules: recursive
+
       - name: Build
         run: |
           mkdir build
           cd build
           cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64" -DSD_BUILD_SHARED_LIBS=ON -DSD_BUILD_SHARED_GGML_LIB=ON -DSD_METAL=ON
           cmake --build . --config Release -j $(sysctl -n hw.physicalcpu)
+
       - name: Pack
         run: |
           mkdir -p build/dist
           cd build/bin/ || exit
-          zip ../dist/sd-master-${{ needs.get_short_commit_hash.outputs.hash }}-bin-macos-metal-arm64.zip ./*
+          zip ../dist/sd-${{ inputs.version }}-bin-macos-metal-arm64.zip ./*
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v6
         with:
           name: metal-macos
           path: build/dist/*
+
   release:
     runs-on: ubuntu-latest
-    # needs: [get_short_commit_hash, build_openblas_avx2_linux, build_sycl_avx2_linux, build_cu130_avx512_linux, build_cu124_avx512_win]
-    needs: [get_short_commit_hash, build_openblas_avx2_linux, build_sycl_avx2_linux, build_cu130_avx512_linux, build_metal_macos]
+    needs:
+      [
+        build_openblas_avx2_linux,
+        build_sycl_avx2_linux,
+        build_cu130_avx512_linux,
+        build_metal_macos,
+      ]
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v7
         with:
           path: |
             dist/
+
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: sd-master-${{ needs.get_short_commit_hash.outputs.hash }}
-          name: Binary build for stable-diffusion.cpp (${{ needs.get_short_commit_hash.outputs.hash }})
+          tag_name: sd-${{ inputs.version }}
+          name: Binary build for stable-diffusion.cpp (${{ inputs.version }})
           body: |
             This release contains the x86_64 binary of [stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp).
           files: dist/**/*

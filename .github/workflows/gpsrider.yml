@@ -2,39 +2,32 @@ name: Build GPSRider
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Revision"
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 jobs:
-  get_short_commit_hash:
+  build:
     runs-on: ubuntu-latest
-    outputs:
-      hash: ${{ steps.short_commit_hash.outputs.short }}
     steps:
-      - name: Prepare commit hash
-        id: commit_hash
-        run: |
-          git clone https://github.com/RomanK2311/GPSRider cache --depth 1
-          cd cache
-          echo "hash=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
-          cd ..
-          rm -rf cache
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          repository: RomanK2311/GPSRider
+          ref: ${{ inputs.version }}
+          submodules: recursive
+          fetch-depth: 0
+
       - name: Get short commit hash
         id: short_commit_hash
         uses: prompt/actions-commit-hash@v3
         with:
-          commit: ${{ steps.commit_hash.outputs.hash }}
-  build:
-    needs: get_short_commit_hash
-    runs-on: ubuntu-latest
-    steps:
-      - name: Repository Checkout
-        uses: actions/checkout@v5
-        with:
-          repository: RomanK2311/GPSRider
-          submodules: recursive
-          fetch-depth: 0
+          commit: ${{ inputs.version }}
 
       - name: Install JDK
         uses: actions/setup-java@v4
@@ -57,8 +50,8 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: gpsrider-${{ needs.get_short_commit_hash.outputs.hash }}
-          name: Binary build for GPSRider (${{ needs.get_short_commit_hash.outputs.hash }})
+          tag_name: gpsrider-${{ steps.short_commit_hash.outputs.short }}
+          name: Binary build for GPSRider (${{ steps.short_commit_hash.outputs.short }})
           body: |
             This release contains the release-build apk of [GPSRider](https://github.com/RomanK2311/GPSRider).
           files: app/build/outputs/apk/release/app-release.apk
