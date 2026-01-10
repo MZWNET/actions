@@ -38,11 +38,6 @@ source = "github"
 github = "leejet/stable-diffusion.cpp"
 use_latest_release = true
 
-[vaultwarden]
-source = "github"
-github = "dani-garcia/vaultwarden"
-use_latest_release = true
-
 [whisper_cpp]
 source = "github"
 github = "ggml-org/whisper.cpp"

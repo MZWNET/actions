@@ -12,7 +12,21 @@ permissions:
   contents: write
 
 jobs:
+  process-tag-name:
+    runs-on: ubuntu-latest
+    outputs:
+      semver: ${{ steps.process-tag-name.outputs.semver }}
+    steps:
+      - name: Process Version for No v Prefix
+        id: process-tag-name
+        shell: python
+        run: |
+          import subprocess
+          version = "${{ inputs.version }}"
+          semver = version.replace("unpriv-", "")
+          subprocess.run(f'echo semver={semver} >> $GITHUB_OUTPUT', shell=True, check=True)
   build:
+    needs: process-tag-name
     runs-on: ubuntu-latest
     steps:
       - name: Repository Checkout
@@ -20,7 +34,7 @@ jobs:
         with:
           repository: estkme-group/openeuicc
           submodules: recursive
-          ref: unpriv-${{ inputs.version }}
+          ref: ${{ inputs.version }}
           fetch-depth: 0
 
       - name: Decode Secret Signing Configuration
@@ -46,21 +60,21 @@ jobs:
         run: |
           SAVE_DIR=$(pwd)
           cd app/build/magisk/release
-          zip -r $SAVE_DIR/Magisk-Module-OpenEUICC-${{ inputs.version }}.zip ./*
+          zip -r $SAVE_DIR/Magisk-Module-OpenEUICC-${{ needs.process-tag-name.outputs.semver }}.zip ./*
 
       - name: Upload Magisk Artifacts
         uses: actions/upload-artifact@v6
         with:
-          name: Magisk-Module-OpenEUICC-${{ inputs.version }}
+          name: Magisk-Module-OpenEUICC-${{ needs.process-tag-name.outputs.semver }}
           compression-level: 0
-          path: Magisk-Module-OpenEUICC-${{ inputs.version }}.zip
+          path: Magisk-Module-OpenEUICC-${{ needs.process-tag-name.outputs.semver }}.zip
 
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: openeuicc-${{ inputs.version }}
-          name: Binary build for OpenEUICC Magisk Module (${{ inputs.version }})
+          tag_name: openeuicc-${{ needs.process-tag-name.outputs.semver }}
+          name: Binary build for OpenEUICC Magisk Module (${{ needs.process-tag-name.outputs.semver }})
           body: |
             This release contains the magisk module of [OpenEUICC](https://gitea.angry.im/PeterCxy/OpenEUICC/).
-          files: Magisk-Module-OpenEUICC-${{ inputs.version }}.zip
+          files: Magisk-Module-OpenEUICC-${{ needs.process-tag-name.outputs.semver }}.zip
           fail_on_unmatched_files: true
