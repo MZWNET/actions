@@ -28,7 +28,7 @@ jobs:
 
       - name: Prepare Version Record Files
         run: |
-          mv cache/*.json assets/nvchecker/
+          mv cache/*.json assets/nvchecker/ || exit
           rm -rf cache
 
       - name: Install uv
