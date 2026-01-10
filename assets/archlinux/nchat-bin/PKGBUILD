@@ -1,7 +1,7 @@
 # Maintainer: mzwing <mzwing@mzwing.eu.org>
 
 pkgname=nchat-bin
-pkgver=3.67
+pkgver=#{{ver}}
 pkgrel=1
 pkgdesc="nchat is a terminal-based chat client for Linux and macOS with support for Telegram and WhatsApp."
 arch=('x86_64')
@@ -13,24 +13,10 @@ provides=('nchat')
 conflicts=('nchat' 'nchat-git' 'nchat-bin')
 source=("nchat-v$pkgver-$CARCH-binary.tar.gz::https://github.com/MZWNET/actions/releases/download/nchat/nchat-v$pkgver-$CARCH-binary.tar.gz"
         "LICENSE::https://github.com/d99kris/nchat/raw/master/LICENSE")
-md5sums=('SKIP'
-        'SKIP')
+md5sums=('#{{nchat-bin-md5sum}}'
+        '#{{license-md5sum}}')
 
 package() {
-  cd "$srcdir"
-  install -Dm755 usr/local/bin/nchat -t "$pkgdir/usr/local/bin"
-  install -Dm644 LICENSE -t "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
-  install -Dm644 usr/local/lib/* -t "$pkgdir/usr/local/lib"
-  install -Dm644 usr/local/man/man1/* -t "$pkgdir/usr/local/man/man1"
-  install -Dm644 usr/local/share/nchat/themes/basic-color/* -t "$pkgdir/usr/local/share/$pkgname/themes/basic-color"
-  install -Dm644 usr/local/share/nchat/themes/catppuccin-mocha/* -t "$pkgdir/usr/local/share/$pkgname/themes/catppuccin-mocha"
-  install -Dm644 usr/local/share/nchat/themes/default/* -t "$pkgdir/usr/local/share/$pkgname/themes/default"
-  install -Dm644 usr/local/share/nchat/themes/dracula/* -t "$pkgdir/usr/local/share/$pkgname/themes/dracula"
-  install -Dm644 usr/local/share/nchat/themes/espresso/* -t "$pkgdir/usr/local/share/$pkgname/themes/espresso"
-  install -Dm644 usr/local/share/nchat/themes/gruvbox-dark/* -t "$pkgdir/usr/local/share/$pkgname/themes/gruvbox-dark"
-  install -Dm644 usr/local/share/nchat/themes/solarized-dark-higher-contrast/* -t "$pkgdir/usr/local/share/$pkgname/themes/solarized-dark-higher-contrast"
-  install -Dm644 usr/local/share/nchat/themes/tokyo-night/* -t "$pkgdir/usr/local/share/$pkgname/themes/tokyo-night"
-  install -Dm644 usr/local/share/nchat/themes/tomorrow-night/* -t "$pkgdir/usr/local/share/$pkgname/themes/tomorrow-night"
-  install -Dm644 usr/local/share/nchat/themes/zenbones-dark/* -t "$pkgdir/usr/local/share/$pkgname/themes/zenbones-dark"
-  install -Dm644 usr/local/share/nchat/themes/zenburned/* -t "$pkgdir/usr/local/share/$pkgname/themes/zenburned"
+  install -Dm644 "$srcdir/LICENSE" -t "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  cp -dpr --no-preserve=ownership "$srcdir/usr/" "$pkgdir/usr"
 }

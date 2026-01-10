@@ -2,23 +2,30 @@ name: Build nchat
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version"
+        required: true
+        type: string
 
 permissions:
   contents: write
 
-env:
-  NCHAT_VERSION: 3.67
-
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      semver: ${{ steps.prepare_semver.outputs.semver }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
           repository: d99kris/nchat
-          ref: v${{ env.NCHAT_VERSION }}
+          ref: ${{ inputs.version }}
           path: nchat
+      - name: Prepare Semver Version
+        id: prepare_semver
+        run: echo "semver=$(echo ${{ inputs.version }} | sed 's/^v//')" >> $GITHUB_OUTPUT
       - name: Setup Go Environment
         uses: actions/setup-go@v6
         with:
@@ -36,12 +43,13 @@ jobs:
         run: |
           mkdir artifacts
           cd nchat/build/bin/
-          tar -zcvf ../../../artifacts/nchat-v${{ env.NCHAT_VERSION }}-x86_64-binary.tar.gz .
+          chmod 755 usr/local/bin/nchat
+          tar -zcvf ../../../artifacts/nchat-${{ inputs.version }}-x86_64-binary.tar.gz .
       - name: Upload Artifacts
         uses: actions/upload-artifact@v6
         with:
           name: tar_gz
-          path: artifacts/nchat-v${{ env.NCHAT_VERSION }}-x86_64-binary.tar.gz
+          path: artifacts/nchat-${{ inputs.version }}-x86_64-binary.tar.gz
   pack_deb:
     runs-on: ubuntu-latest
     needs: build
@@ -55,7 +63,7 @@ jobs:
         run: |
           mkdir -p build
           cd build
-          tar -zxvf ../artifacts/tar_gz/nchat-v${{ env.NCHAT_VERSION }}-x86_64-binary.tar.gz
+          tar -zxvf ../artifacts/tar_gz/nchat-${{ inputs.version }}-x86_64-binary.tar.gz
       - name: Pack deb
         id: pack_deb
         uses: jiro4989/build-deb-action@v4
@@ -63,19 +71,15 @@ jobs:
           package: nchat
           package_root: build/
           maintainer: d99kris
-          version: ${{ env.NCHAT_VERSION }}
+          version: ${{ needs.build.outputs.semver }}
           arch: amd64
           depends: 'ncurses, file, sqlite3, openssl, glibc, zlib, libxcb1, lib64gcc-s1, libpng16-16'
           desc: 'nchat is a terminal-based chat client for Linux and macOS with support for Telegram and WhatsApp.'
-      - name: Prepare Artifact
-        run: |
-          mkdir -p dist
-          mv ${{ steps.pack_deb.outputs.file_name }} dist/
       - name: Upload Artifacts
         uses: actions/upload-artifact@v6
         with:
           name: deb
-          path: dist/*
+          path: ${{ steps.pack_deb.outputs.file_name }}
   pack_zst:
     runs-on: ubuntu-latest
     needs: build
@@ -92,22 +96,21 @@ jobs:
       - name: Prepare
         run: |
           cp -r workspace/assets/archlinux/ build/
-          cp artifacts/tar_gz/nchat-v${{ env.NCHAT_VERSION }}-x86_64-binary.tar.gz build/nchat-bin/
+          cp artifacts/tar_gz/nchat-${{ inputs.version }}-x86_64-binary.tar.gz build/nchat-bin/
           wget https://github.com/d99kris/nchat/raw/master/LICENSE -o build/nchat-bin/LICENSE
+          sed -i "s/#{{ver}}/${{ needs.build.outputs.semver }}/g" build/nchat-bin/PKGBUILD
+          sed -i "s/#{{nchat-bin-md5sum}}/$(md5sum artifacts/tar_gz/nchat-${{ inputs.version }}-x86_64-binary.tar.gz | cut -d ' ' -f1)/g" build/nchat-bin/PKGBUILD
+          sed -i "s/#{{license-md5sum}}/$(md5sum build/nchat-bin/LICENSE | cut -d ' ' -f1)/g" build/nchat-bin/PKGBUILD
       - name: Pack zst for ArchLinux
         id: pack_zst
         uses: edlanglois/pkgbuild-action@v1
         with:
           pkgdir: build/nchat-bin
-      - name: Prepare Artifact
-        run: |
-          mkdir -p dist
-          mv ${{ steps.pack_zst.outputs.pkgfile0 }} dist/
       - name: Upload Artifacts
         uses: actions/upload-artifact@v6
         with:
           name: zst
-          path: dist/*
+          path: ${{ steps.pack_zst.outputs.pkgfile0 }}
   release:
     runs-on: ubuntu-latest
     needs: [pack_deb, pack_zst]
@@ -117,18 +120,11 @@ jobs:
         with:
           path: |
             dist/
-      - name: Prepare Artifacts
-        run: |
-          cd dist
-          mv -f tar_gz/* .
-          mv -f deb/* .
-          mv -f zst/* .
-          rm -rf tar_gz deb zst
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: nchat-v${{ env.NCHAT_VERSION }}
-          name: nchat Binary (v${{ env.NCHAT_VERSION }})
+          tag_name: nchat-${{ inputs.version }}
+          name: nchat Binary (${{ inputs.version }})
           body: This release contains the x86_64 binary of [nchat](https://github.com/d99kris/nchat).
-          files: dist/*
+          files: dist/**/*
           fail_on_unmatched_files: true
