@@ -1,13 +1,6 @@
-async function main() {
-  const TARGET_PREFIXES = [
-    "fluffychat-",
-    "gpsrider-",
-    "nightly-",
-  ];
-
-  const KEEP_COUNT_MATCHED = 9;
-  const KEEP_COUNT_OTHERS = 1;
-
+module.exports = async (
+  { github, context, TARGET_PREFIXES, KEEP_COUNT_MATCHED, KEEP_COUNT_OTHERS },
+) => {
   const isDryRun = context.payload.inputs
     ? context.payload.inputs.dry_run === "true"
     : false;
@@ -113,6 +106,4 @@ async function main() {
       console.log(`[DRY RUN] Will delete Release: ${tag} and Tag: tags/${tag}`);
     }
   }
-}
-
-module.exports = main;
+};

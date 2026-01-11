@@ -66,7 +66,19 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const main = require('${{ github.workspace }}/tools/clean_release/main.js');
-            await main();
+            const TARGET_PREFIXES = [
+              "fluffychat-",
+              "gpsrider-",
+              "nightly-",
+              "llama_cpp-",
+              "nchat-",
+              "openeuicc-",
+              "sd-",
+              "whisper_cpp-",
+            ];
+            const KEEP_COUNT_MATCHED = 9;
+            const KEEP_COUNT_OTHERS = 1;
+            await main({github, context, TARGET_PREFIXES, KEEP_COUNT_MATCHED, KEEP_COUNT_OTHERS});
 
       - name: Commit Version Record Files
         working-directory: assets/nvchecker
