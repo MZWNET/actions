@@ -127,7 +127,7 @@ jobs:
     steps:
       - name: Install Deps
         run: |
-          brew install zip ccache ninja
+          brew install zip ccache ninja libomp
 
       - name: Checkout
         uses: actions/checkout@v6
