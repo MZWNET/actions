@@ -74,6 +74,7 @@ jobs:
               "nchat-",
               "openeuicc-",
               "sd-",
+              "ui-tars-desktop-",
               "whisper_cpp-",
             ];
             const KEEP_COUNT_MATCHED = 9;
