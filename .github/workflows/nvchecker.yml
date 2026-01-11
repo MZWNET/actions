@@ -69,7 +69,6 @@ jobs:
             const TARGET_PREFIXES = [
               "fluffychat-",
               "gpsrider-",
-              "nightly-",
               "llama_cpp-",
               "nchat-",
               "openeuicc-",
@@ -77,7 +76,7 @@ jobs:
               "ui-tars-desktop-",
               "whisper_cpp-",
             ];
-            const KEEP_COUNT_MATCHED = 9;
+            const KEEP_COUNT_MATCHED = 5;
             const KEEP_COUNT_OTHERS = 1;
             await main({github, context, TARGET_PREFIXES, KEEP_COUNT_MATCHED, KEEP_COUNT_OTHERS});
 
