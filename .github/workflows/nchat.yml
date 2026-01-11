@@ -66,17 +66,11 @@ jobs:
           path: |
             artifacts/
 
-      - name: Debug
-        run: |
-          ls -alh .
-          ls -alh artifacts/
-          tree artifacts/
-
       - name: Prepare
         run: |
           mkdir -p build
           cd build
-          tar -zxvf ../artifacts/tar_gz/nchat-${{ inputs.version }}-x86_64-binary.tar.gz
+          tar -zxvf ../artifacts/nchat-${{ inputs.version }}-x86_64-binary.tar.gz
 
       - name: Pack deb
         id: pack_deb
@@ -111,19 +105,13 @@ jobs:
           path: |
             artifacts/
 
-      - name: Debug
-        run: |
-          ls -alh .
-          ls -alh artifacts/
-          tree artifacts/
-
       - name: Prepare
         run: |
           cp -r workspace/assets/archlinux/ build/
-          cp artifacts/tar_gz/nchat-${{ inputs.version }}-x86_64-binary.tar.gz build/nchat-bin/
+          cp artifacts/nchat-${{ inputs.version }}-x86_64-binary.tar.gz build/nchat-bin/
           wget https://github.com/d99kris/nchat/raw/master/LICENSE -o build/nchat-bin/LICENSE
           sed -i "s/#{{ver}}/${{ needs.build.outputs.semver }}/g" build/nchat-bin/PKGBUILD
-          sed -i "s/#{{nchat-bin-md5sum}}/$(md5sum artifacts/tar_gz/nchat-${{ inputs.version }}-x86_64-binary.tar.gz | cut -d ' ' -f1)/g" build/nchat-bin/PKGBUILD
+          sed -i "s/#{{nchat-bin-md5sum}}/$(md5sum build/nchat-bin/nchat-${{ inputs.version }}-x86_64-binary.tar.gz | cut -d ' ' -f1)/g" build/nchat-bin/PKGBUILD
           sed -i "s/#{{license-md5sum}}/$(md5sum build/nchat-bin/LICENSE | cut -d ' ' -f1)/g" build/nchat-bin/PKGBUILD
 
       - name: Pack zst for ArchLinux

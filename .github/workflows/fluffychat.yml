@@ -59,16 +59,18 @@ jobs:
           import subprocess
           token = os.environ.get("GITHUB_TOKEN")
           headers = {"Authorization": f"Bearer {token}"} if token else {}
-          data = requests.get("https://api.github.com/repos/MZWNET/actions/releases?per_page=50", headers=headers).json()
+          data = requests.get("https://api.github.com/repos/MZWNET/actions/releases?per_page=100", headers=headers).json()
           libOlmVersion = ""
           for release in data:
               if "libolm" in release["tag_name"]:
                   libOlmVersion = release["tag_name"].replace("libolm-", "")
                   break
-          subprocess.run(f'echo libolm-version={libOlmVersion} >> $GITHUB_OUTPUT', shell=True, check=True)
+          subprocess.run(f'echo libolm-version="{libOlmVersion}" >> $GITHUB_OUTPUT', shell=True, check=True)
+          print(f"Found libolm version: {libOlmVersion}") # debug
 
       - name: Add LibOlm DLL
         run: |
+          echo "${{ steps.get-libolm-tag.outputs.libolm-version }}"
           curl -L -o libolm-release-${{ steps.get-libolm-tag.outputs.libolm-version }}.zip https://github.com/MZWNET/actions/releases/download/libolm-${{ steps.get-libolm-tag.outputs.libolm-version }}/libolm-release-${{ steps.get-libolm-tag.outputs.libolm-version }}.zip
           7z x libolm-release-${{ steps.get-libolm-tag.outputs.libolm-version }}.zip build/windows/x64/runner/Release/
           rm -Force libolm-release-${{ steps.get-libolm-tag.outputs.libolm-version }}.zip
