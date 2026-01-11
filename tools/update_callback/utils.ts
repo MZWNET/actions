@@ -1,12 +1,11 @@
 import { parse } from "@std/toml";
-import * as path from "@std/path";
 
 import type { Config, ResultItem, VerData } from "./types.ts";
 
 async function getUpdateInfo(
   resultJsonPath: string,
   configTomlPath: string,
-  repoRoot: string,
+  newVerFilePath: string,
 ) {
   // Read result.json
   let resultJsonContent: string;
@@ -37,11 +36,6 @@ async function getUpdateInfo(
   const config = parse(configTomlContent) as Config;
 
   // Read new_ver.json
-  const newVerFilePath = path.join(
-    repoRoot,
-    "assets/nvchecker",
-    config.__config__.newver,
-  );
   let newVerContent: string;
   try {
     newVerContent = await Deno.readTextFile(newVerFilePath);

@@ -1,31 +1,29 @@
-import * as path from "@std/path";
-
 import { parseArgs } from "@std/cli";
 import { getUpdateInfo, triggerWorkflow } from "./utils.ts";
 
-const scriptDir = path.dirname(path.fromFileUrl(import.meta.url));
-const repoRoot = path.resolve(scriptDir, "../../");
-const resultJsonPath = path.join(scriptDir, "result.json");
-const configTomlPath = path.join(repoRoot, "assets/nvchecker/config.toml");
-
 async function main() {
   const args = parseArgs(Deno.args, {
-    string: ["token", "repo"],
+    string: ["config", "newver", "ref", "repo", "result", "token"],
     boolean: ["dry-run"],
     default: {
-      repo: "MZWNET/actions",
+      "dry-run": false,
     },
   });
 
-  if (!args.token) {
-    console.error("Error: --token is required.");
+  if (
+    !args.config || !args.newver || !args.ref || !args.repo || !args.result ||
+    !args.token
+  ) {
+    console.error(
+      "Error: params don't match. Required params: --config, --newver, --ref, --repo, --result, --token",
+    );
     Deno.exit(1);
   }
 
   const updateInfo = await getUpdateInfo(
-    resultJsonPath,
-    configTomlPath,
-    repoRoot,
+    args.result,
+    args.config,
+    args.newver,
   );
 
   for (const item of updateInfo) {
@@ -34,7 +32,13 @@ async function main() {
         `[Dry Run] Would trigger workflow for ${item.name} with version ${item.newver}`,
       );
     } else {
-      await triggerWorkflow(item.name, item.newver, args.token, args.repo, "master");
+      await triggerWorkflow(
+        item.name,
+        item.newver,
+        args.token,
+        args.repo,
+        "master",
+      );
     }
   }
 }

@@ -11,12 +11,6 @@ use_latest_release = true
 source = "github"
 github = "RomanK2311/GPSRider"
 
-[libolm]
-source = "gitlab"
-gitlab = "matrix-org/olm"
-host = "gitlab.matrix.org"
-use_max_tag = true
-
 [llama_cpp]
 source = "github"
 github = "ggml-org/llama.cpp"

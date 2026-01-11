@@ -2,7 +2,7 @@ name: Update
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: "0 0 * * *"
   workflow_dispatch:
   push:
     branches:
@@ -10,7 +10,7 @@ on:
     paths:
       - "assets/nvchecker/config.toml"
       - ".github/workflows/nvchecker.yml"
-      - "tools/update_callback/**"
+      - "tools/**/**"
 
 permissions:
   actions: write
@@ -45,7 +45,7 @@ jobs:
       - name: Check update
         run: |
           nvchecker -c assets/nvchecker/config.toml
-          nvcmp -c assets/nvchecker/config.toml -j > tools/update_callback/result.json
+          nvcmp -c assets/nvchecker/config.toml -j > assets/nvchecker/result.json
           nvtake -c assets/nvchecker/config.toml --all
 
       - name: Setup Deno
@@ -58,7 +58,15 @@ jobs:
         working-directory: tools/update_callback
         run: |
           deno install
-          deno task start --token "${{ secrets.GITHUB_TOKEN }}" --repo "MZWNET/actions"
+          deno task start --config "${{ github.workspace }}/assets/nvchecker/config.toml" --newver "${{ github.workspace }}/assets/nvchecker/new_ver.json" --ref "master" --repo "MZWNET/actions" --result "${{ github.workspace }}/assets/nvchecker/result.json" --token "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Cleanup Releases
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const main = require('${{ github.workspace }}/tools/clean_release/main.js');
+            await main();
 
       - name: Commit Version Record Files
         working-directory: assets/nvchecker

@@ -4,7 +4,6 @@
     "dev": "deno run --allow-read --allow-net --watch main.ts"
   },
   "imports": {
-    "@std/path": "jsr:@std/path@^1.1.4",
     "@std/toml": "jsr:@std/toml@^1.0.11",
     "@std/cli": "jsr:@std/cli"
   }

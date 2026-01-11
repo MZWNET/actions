@@ -1,3 +1,2 @@
 .DS_Store
-tools/update_callback/result.json
-assets/nvchecker/*_ver.json*
+assets/nvchecker/*.json*
