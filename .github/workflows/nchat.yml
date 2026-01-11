@@ -36,6 +36,7 @@ jobs:
 
       - name: Install Dependencies
         run: sudo apt-get install ccache cmake build-essential gperf help2man libreadline-dev libssl-dev libncurses-dev libncursesw5-dev ncurses-doc zlib1g-dev libsqlite3-dev libmagic-dev -y
+
       - name: Build
         run: |
           cd nchat
