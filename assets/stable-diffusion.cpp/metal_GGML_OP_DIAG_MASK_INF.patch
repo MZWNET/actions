@@ -117,7 +117,7 @@ index e99c1763..afd9fbbb 100644
 +        .nb2    = nb02,
 +    };
 +
-+    auto ggml_metal_pipeline_t pipeline =
++    ggml_metal_pipeline_with_params pipeline =
 +        ggml_metal_library_get_pipeline_diag_mask_inf(lib, op);
 +
 +    ggml_metal_encoder_set_pipeline(enc, pipeline);
