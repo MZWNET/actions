@@ -61,7 +61,7 @@ jobs:
           deno task start --config "${{ github.workspace }}/assets/nvchecker/config.toml" --newver "${{ github.workspace }}/assets/nvchecker/new_ver.json" --ref "master" --repo "MZWNET/actions" --result "${{ github.workspace }}/assets/nvchecker/result.json" --token "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Cleanup Releases
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
