@@ -135,13 +135,6 @@ jobs:
           repository: leejet/stable-diffusion.cpp
           submodules: recursive
 
-      - name: Patch
-        working-directory: ggml
-        run: |
-          wget https://github.com/MZWNET/actions/raw/refs/heads/master/assets/stable-diffusion.cpp/metal_GGML_OP_DIAG_MASK_INF.patch -O metal_GGML_OP_DIAG_MASK_INF.patch
-          git apply metal_GGML_OP_DIAG_MASK_INF.patch
-          rm -rf metal_GGML_OP_DIAG_MASK_INF.patch
-
       - name: Build
         run: |
           mkdir build
