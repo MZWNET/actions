@@ -20,6 +20,7 @@ jobs:
           echo "hash=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
           cd ..
           rm -rf cache
+
       - name: Get short commit hash
         id: short_commit_hash
         uses: prompt/actions-commit-hash@v3
@@ -35,21 +36,24 @@ jobs:
           repository: mzwing/UI-TARS-desktop
           submodules: recursive
           ref: linux
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          run_install: false
+
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: latest
           check-latest: true
           cache: pnpm
-      - name: Install Dependencies
-        run: pnpm install
+
+      - name: Install deps
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: |
+            - args: [--frozen-lockfile]
+
       - name: Build
         run: |
           pnpm run build
+
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
