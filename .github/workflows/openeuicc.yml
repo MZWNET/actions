@@ -35,7 +35,6 @@ jobs:
           repository: estkme-group/openeuicc
           submodules: recursive
           ref: ${{ inputs.version }}
-          fetch-depth: 0
 
       - name: Decode Secret Signing Configuration
         run: |

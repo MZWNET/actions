@@ -21,7 +21,6 @@ jobs:
           repository: RomanK2311/GPSRider
           ref: ${{ inputs.version }}
           submodules: recursive
-          fetch-depth: 0
 
       - name: Get short commit hash
         id: short_commit_hash

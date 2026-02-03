@@ -29,7 +29,6 @@ jobs:
           repository: krille-chan/fluffychat
           ref: ${{ inputs.version }}
           submodules: recursive
-          fetch-depth: 0
 
       - name: Export env
         id: env
