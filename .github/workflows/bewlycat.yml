@@ -31,7 +31,6 @@ jobs:
       - name: Install Deps
         uses: pnpm/action-setup@v4
         with:
-          version: latest
           run_install: |
             - args: [--frozen-lockfile]
 
