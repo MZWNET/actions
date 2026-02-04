@@ -42,7 +42,6 @@ jobs:
         with:
           node-version: latest
           check-latest: true
-          cache: pnpm
 
       - name: Install deps
         uses: pnpm/action-setup@v4
