@@ -34,7 +34,7 @@ jobs:
           run_install: |
             - args: [--frozen-lockfile]
 
-      - name: Build Safari Extension
+      - name: Build
         run: |
           pnpm build-safari
           xcrun safari-web-extension-converter ./extension-safari --project-location ./extension-safari-macos --macos-only --force --no-prompt --no-open
@@ -44,12 +44,27 @@ jobs:
             -configuration Release \
             -derivedDataPath build
 
-      - name: Upload Safari Extension
+      - name: Pack
+        run: |
+          brew install create-dmg
+          cd extension-safari-macos/BewlyCat/build/Build/Products/Release
+          create-dmg \
+            --volname "BewlyCat" \
+            --window-pos 200 120 \
+            --window-size 800 400 \
+            --icon-size 200 \
+            --icon "BewlyCat.app" 200 190 \
+            --hide-extension "BewlyCat.app" \
+            --app-drop-link 600 185 \
+            "BewlyCat-${{ inputs.version }}.dmg" \
+            "BewlyCat.app"
+
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v6
         with:
           name: BewlyCat-safari-${{ inputs.version }}
           path: |
-            extension-safari-macos/BewlyCat/build/Build/Products/Release/BewlyCat.app
+            extension-safari-macos/BewlyCat/build/Build/Products/Release/BewlyCat-${{ inputs.version }}.dmg
 
       - name: Release
         uses: softprops/action-gh-release@v2
@@ -58,5 +73,5 @@ jobs:
           name: Binary build for BewlyCat Safari Extension (${{ inputs.version }})
           body: |
             This release contains the Safari extension Build of [BewlyCat](https://github.com/keleus/BewlyCat).
-          files: extension-safari-macos/BewlyCat/build/Build/Products/Release/BewlyCat.app
+          files: extension-safari-macos/BewlyCat/build/Build/Products/Release/BewlyCat-${{ inputs.version }}.dmg
           fail_on_unmatched_files: true
