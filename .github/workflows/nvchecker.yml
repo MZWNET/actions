@@ -67,6 +67,7 @@ jobs:
           script: |
             const main = require('${{ github.workspace }}/tools/clean_release/main.js');
             const TARGET_PREFIXES = [
+              "bewlycat-",
               "fluffychat-",
               "gpsrider-",
               "llama_cpp-",

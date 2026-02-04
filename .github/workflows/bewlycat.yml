@@ -1,0 +1,63 @@
+name: Build BewlyCat Safari Extension
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-safari:
+    runs-on: macos-latest
+    steps:
+      - name: Repository Checkout
+        uses: actions/checkout@v6
+        with:
+          repository: keleus/BewlyCat
+          submodules: recursive
+          ref: ${{ inputs.version }}
+
+      - name: Install Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: latest
+          check-latest: true
+          cache: pnpm
+
+      - name: Install Deps
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: |
+            - args: [--frozen-lockfile]
+
+      - name: Build Safari Extension
+        run: |
+          pnpm build-safari
+          xcrun safari-web-extension-converter ./extension-safari --project-location ./extension-safari-macos --macos-only --force --no-prompt --no-open
+          cd extension-safari-macos/BewlyCat
+          xcodebuild -project BewlyCat.xcodeproj \
+            -scheme "BewlyCat" \
+            -configuration Release \
+            -derivedDataPath build
+
+      - name: Upload Safari Extension
+        uses: actions/upload-artifact@v6
+        with:
+          name: BewlyCat-safari-${{ inputs.version }}
+          path: |
+            extension-safari-macos/BewlyCat/build/Build/Products/Release/BewlyCat.app
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: bewlycat-${{ inputs.version }}
+          name: Binary build for BewlyCat Safari Extension (${{ inputs.version }})
+          body: |
+            This release contains the Safari extension Build of [BewlyCat](https://github.com/keleus/BewlyCat).
+          files: extension-safari-macos/BewlyCat/build/Build/Products/Release/BewlyCat.app
+          fail_on_unmatched_files: true

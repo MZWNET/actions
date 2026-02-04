@@ -2,6 +2,11 @@
 oldver = "old_ver.json"
 newver = "new_ver.json"
 
+[bewlycat]
+source = "github"
+github = "keleus/BewlyCat"
+use_latest_release = true
+
 [fluffychat]
 source = "github"
 github = "krille-chan/fluffychat"
