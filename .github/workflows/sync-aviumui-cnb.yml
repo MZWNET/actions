@@ -19,6 +19,7 @@ jobs:
           CNB_PASSWORD: ${{ secrets.CNB_GIT_PASSWORD }}
         run: |
           git lfs install
+          git config --global lfs.locksverify true
 
           sync_repo() {
             set -e
