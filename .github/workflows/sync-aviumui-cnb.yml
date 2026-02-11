@@ -21,6 +21,10 @@ jobs:
           git lfs install
           gh api --paginate "/orgs/AviumUI/repos" --jq '.[] | @json' | while IFS= read -r repo_json; do
             repo=$(echo "$repo_json" | jq -r '.name')
+            if [ "$repo" = ".github" ]; then
+              echo "Skipping .github repo"
+              continue
+            fi
             desc=$(echo "$repo_json" | jq -r '.description // empty')
             echo "::group::Syncing $repo"
 
