@@ -1,0 +1,33 @@
+name: Sync AviumUI org repos to CNB
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/sync-aviumui-cnb.yml"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync all AviumUI repos to CNB
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git lfs install
+          repos=$(gh api --paginate "/orgs/AviumUI/repos" --jq '.[].name')
+          for repo in $repos; do
+            echo "::group::Syncing $repo"
+            git clone --mirror "https://github.com/AviumUI/${repo}.git" "${repo}"
+            cd "${repo}"
+            git lfs fetch --all "https://github.com/AviumUI/${repo}.git"
+            git remote add cnb "https://cnb:${{ secrets.CNB_GIT_PASSWORD }}@cnb.cool/MZWNET/AviumUI/${repo}.git"
+            git push cnb --mirror --force
+            git lfs push --all cnb
+            cd ..
+            rm -rf "${repo}"
+            echo "::endgroup::"
+          done
