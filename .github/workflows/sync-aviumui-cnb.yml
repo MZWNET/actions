@@ -24,22 +24,25 @@ jobs:
             echo "::group::Syncing $repo"
 
             # Create repo on CNB if not exists
-            http_code=$(curl --silent --output /dev/stderr --write-out "%{http_code}" \
+            trimmed_desc=$(echo "$desc" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            response=$(curl --silent --write-out "\n%{http_code}" \
               --request POST \
               --url "https://api.cnb.cool/MZWNET/AviumUI/-/repos" \
               --header "Authorization: Bearer ${CNB_PASSWORD}" \
               --header "Content-Type: application/json" \
               --data "{
                 \"name\": \"${repo}\",
-                \"description\": $(echo "$desc" | jq -Rs .),
+                \"description\": $(echo "$trimmed_desc" | jq -Rs .),
                 \"visibility\": \"public\"
-              }" 2>&1)
+              }")
+            http_code=$(echo "$response" | tail -n1)
+            body=$(echo "$response" | sed '$d')
             if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
               echo "Repo ${repo} created successfully"
             elif [ "$http_code" -eq 409 ]; then
               echo "Repo ${repo} already exists, skipping creation"
             else
-              echo "::error::Failed to create repo ${repo}, HTTP status: ${http_code}"
+              echo "::error::Failed to create repo ${repo}, HTTP ${http_code}: ${body}"
               exit 1
             fi
 
