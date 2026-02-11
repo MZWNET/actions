@@ -18,8 +18,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CNB_PASSWORD: ${{ secrets.CNB_GIT_PASSWORD }}
         run: |
-          sudo apt-get update
-          sudo apt-get install -y jq git-lfs
           git lfs install
           gh api --paginate "/orgs/AviumUI/repos" --jq '.[] | @json' | while IFS= read -r repo_json; do
             repo=$(echo "$repo_json" | jq -r '.name')
@@ -57,7 +55,7 @@ jobs:
             cd "${repo}"
             git lfs fetch --all "https://github.com/AviumUI/${repo}.git"
             git remote add cnb "https://cnb:${CNB_PASSWORD}@cnb.cool/MZWNET/AviumUI/${repo}.git"
-            git push cnb --mirror --force
+            git push cnb --force 'refs/heads/*:refs/heads/*' 'refs/tags/*:refs/tags/*'
             git lfs push --all cnb
             cd ..
             rm -rf "${repo}"
