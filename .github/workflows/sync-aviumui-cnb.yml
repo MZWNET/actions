@@ -26,12 +26,12 @@ jobs:
             local repo_json="$1"
             local repo desc payload response http_code body
             repo=$(echo "$repo_json" | jq -r '.name')
+            local log_prefix="[$repo]"
             if [ "$repo" = ".github" ]; then
-              echo "Skipping .github repo"
+              echo "$log_prefix Skipping"
               return 0
             fi
             desc=$(echo "$repo_json" | jq -r '.description // empty')
-            echo "::group::Syncing $repo"
 
             # Build JSON payload with jq to handle special characters
             if [ -z "$desc" ]; then
@@ -52,24 +52,27 @@ jobs:
             http_code=$(echo "$response" | tail -n1)
             body=$(echo "$response" | sed '$d')
             if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
-              echo "Repo ${repo} created successfully"
+              echo "$log_prefix Created repo on CNB"
             elif [ "$http_code" -eq 409 ]; then
-              echo "Repo ${repo} already exists, skipping creation"
+              echo "$log_prefix Repo already exists, skipping creation"
             else
-              echo "::error::Failed to create repo ${repo}, HTTP ${http_code}: ${body}"
+              echo "::error::$log_prefix Failed to create repo, HTTP ${http_code}: ${body}"
               return 1
             fi
 
             local workdir="sync_${repo}"
-            git clone --mirror "https://github.com/AviumUI/${repo}.git" "${workdir}"
+            echo "$log_prefix Cloning..."
+            git clone --mirror "https://github.com/AviumUI/${repo}.git" "${workdir}" 2>&1 | sed "s/^/$log_prefix /"
             cd "${workdir}"
-            git lfs fetch --all "https://github.com/AviumUI/${repo}.git"
+            echo "$log_prefix Fetching LFS objects..."
+            git lfs fetch --all "https://github.com/AviumUI/${repo}.git" 2>&1 | sed "s/^/$log_prefix /"
             git remote add cnb "https://cnb:${CNB_PASSWORD}@cnb.cool/MZWNET/AviumUI/${repo}.git"
-            git push cnb --force 'refs/heads/*:refs/heads/*' 'refs/tags/*:refs/tags/*'
-            git lfs push --all cnb
+            echo "$log_prefix Pushing to CNB..."
+            git push cnb --force 'refs/heads/*:refs/heads/*' 'refs/tags/*:refs/tags/*' 2>&1 | sed "s/^/$log_prefix /"
+            git lfs push --all cnb 2>&1 | sed "s/^/$log_prefix /"
             cd ..
             rm -rf "${workdir}"
-            echo "::endgroup::"
+            echo "$log_prefix Done"
           }
           export -f sync_repo
           export CNB_PASSWORD
