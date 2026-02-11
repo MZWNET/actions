@@ -19,11 +19,15 @@ jobs:
           CNB_PASSWORD: ${{ secrets.CNB_GIT_PASSWORD }}
         run: |
           git lfs install
-          gh api --paginate "/orgs/AviumUI/repos" --jq '.[] | @json' | while IFS= read -r repo_json; do
+
+          sync_repo() {
+            set -e
+            local repo_json="$1"
+            local repo desc payload response http_code body
             repo=$(echo "$repo_json" | jq -r '.name')
             if [ "$repo" = ".github" ]; then
               echo "Skipping .github repo"
-              continue
+              return 0
             fi
             desc=$(echo "$repo_json" | jq -r '.description // empty')
             echo "::group::Syncing $repo"
@@ -52,16 +56,25 @@ jobs:
               echo "Repo ${repo} already exists, skipping creation"
             else
               echo "::error::Failed to create repo ${repo}, HTTP ${http_code}: ${body}"
-              exit 1
+              return 1
             fi
 
-            git clone --mirror "https://github.com/AviumUI/${repo}.git" "${repo}"
-            cd "${repo}"
+            local workdir="sync_${repo}"
+            git clone --mirror "https://github.com/AviumUI/${repo}.git" "${workdir}"
+            cd "${workdir}"
             git lfs fetch --all "https://github.com/AviumUI/${repo}.git"
             git remote add cnb "https://cnb:${CNB_PASSWORD}@cnb.cool/MZWNET/AviumUI/${repo}.git"
             git push cnb --force 'refs/heads/*:refs/heads/*' 'refs/tags/*:refs/tags/*'
             git lfs push --all cnb
             cd ..
-            rm -rf "${repo}"
+            rm -rf "${workdir}"
             echo "::endgroup::"
-          done
+          }
+          export -f sync_repo
+          export CNB_PASSWORD
+
+          MAX_PARALLEL=5
+          gh api --paginate "/orgs/AviumUI/repos" --jq '.[] | @json' | \
+            xargs -I {} -P "$MAX_PARALLEL" bash -c 'sync_repo "$@"' _ {}
+
+          echo "All repos synced"
