@@ -75,6 +75,6 @@ jobs:
 
           MAX_PARALLEL=5
           gh api --paginate "/orgs/AviumUI/repos" --jq '.[] | @json' | \
-            xargs -I {} -P "$MAX_PARALLEL" bash -c 'sync_repo "$@"' _ {}
+            tr '\n' '\0' | xargs -0 -n 1 -P "$MAX_PARALLEL" bash -c 'sync_repo "$1"' _
 
           echo "All repos synced"
