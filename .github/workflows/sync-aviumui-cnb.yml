@@ -21,8 +21,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y jq git-lfs
           git lfs install
-          repos=$(gh api --paginate "/orgs/AviumUI/repos" --jq '.[] | @json')
-          for repo_json in $repos; do
+          gh api --paginate "/orgs/AviumUI/repos" --jq '.[] | @json' | while IFS= read -r repo_json; do
             repo=$(echo "$repo_json" | jq -r '.name')
             desc=$(echo "$repo_json" | jq -r '.description // empty')
             echo "::group::Syncing $repo"
