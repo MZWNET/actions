@@ -1,7 +1,7 @@
 name: Sync AviumUI org repos to CNB
 on:
-  schedule:
-    - cron: "0 0 * * *"
+  # schedule:
+  #   - cron: "0 0 * * *"
   workflow_dispatch:
   push:
     branches:
@@ -16,18 +16,40 @@ jobs:
       - name: Sync all AviumUI repos to CNB
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CNB_PASSWORD: ${{ secrets.CNB_GIT_PASSWORD }}
         run: |
           git lfs install
-          repos=$(gh api --paginate "/orgs/AviumUI/repos" --jq '.[].name')
-          for repo in $repos; do
+          repos=$(gh api --paginate "/orgs/AviumUI/repos" --jq '.[] | "\(.name)\t\(.description // "")"')
+          while IFS=$'\t' read -r repo desc; do
             echo "::group::Syncing $repo"
+
+            # Create repo on CNB if not exists
+            http_code=$(curl --silent --output /dev/stderr --write-out "%{http_code}" \
+              --request POST \
+              --url "https://api.cnb.cool/MZWNET/AviumUI/-/repos" \
+              --header "Authorization: Bearer ${CNB_PASSWORD}" \
+              --header "Content-Type: application/json" \
+              --data "{
+                \"name\": \"${repo}\",
+                \"description\": $(echo "$desc" | jq -Rs .),
+                \"visibility\": \"public\"
+              }" 2>&1)
+            if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+              echo "Repo ${repo} created successfully"
+            elif [ "$http_code" -eq 409 ]; then
+              echo "Repo ${repo} already exists, skipping creation"
+            else
+              echo "::error::Failed to create repo ${repo}, HTTP status: ${http_code}"
+              exit 1
+            fi
+
             git clone --mirror "https://github.com/AviumUI/${repo}.git" "${repo}"
             cd "${repo}"
             git lfs fetch --all "https://github.com/AviumUI/${repo}.git"
-            git remote add cnb "https://cnb:${{ secrets.CNB_GIT_PASSWORD }}@cnb.cool/MZWNET/AviumUI/${repo}.git"
+            git remote add cnb "https://cnb:${CNB_PASSWORD}@cnb.cool/MZWNET/AviumUI/${repo}.git"
             git push cnb --mirror --force
             git lfs push --all cnb
             cd ..
             rm -rf "${repo}"
             echo "::endgroup::"
-          done
+          done <<< "$repos"
