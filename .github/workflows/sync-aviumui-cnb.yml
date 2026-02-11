@@ -18,23 +18,31 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CNB_PASSWORD: ${{ secrets.CNB_GIT_PASSWORD }}
         run: |
+          sudo apt-get update
+          sudo apt-get install -y jq git-lfs
           git lfs install
-          repos=$(gh api --paginate "/orgs/AviumUI/repos" --jq '.[] | "\(.name)\t\(.description // "")"')
-          while IFS=$'\t' read -r repo desc; do
+          repos=$(gh api --paginate "/orgs/AviumUI/repos" --jq '.[] | @json')
+          for repo_json in $repos; do
+            repo=$(echo "$repo_json" | jq -r '.name')
+            desc=$(echo "$repo_json" | jq -r '.description // empty')
             echo "::group::Syncing $repo"
 
+            # Build JSON payload with jq to handle special characters
+            if [ -z "$desc" ]; then
+              desc="Mirror of https://github.com/AviumUI/${repo}"
+            fi
+            payload=$(jq -n \
+              --arg name "$repo" \
+              --arg desc "$desc" \
+              '{name: $name, description: $desc, visibility: "public"}')
+
             # Create repo on CNB if not exists
-            trimmed_desc=$(echo "$desc" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
             response=$(curl --silent --write-out "\n%{http_code}" \
               --request POST \
               --url "https://api.cnb.cool/MZWNET/AviumUI/-/repos" \
               --header "Authorization: Bearer ${CNB_PASSWORD}" \
               --header "Content-Type: application/json" \
-              --data "{
-                \"name\": \"${repo}\",
-                \"description\": $(echo "$trimmed_desc" | jq -Rs .),
-                \"visibility\": \"public\"
-              }")
+              --data "$payload")
             http_code=$(echo "$response" | tail -n1)
             body=$(echo "$response" | sed '$d')
             if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
@@ -55,4 +63,4 @@ jobs:
             cd ..
             rm -rf "${repo}"
             echo "::endgroup::"
-          done <<< "$repos"
+          done
