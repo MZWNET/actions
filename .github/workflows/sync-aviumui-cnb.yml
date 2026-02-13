@@ -14,71 +14,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Sync all AviumUI repos to CNB
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CNB_PASSWORD: ${{ secrets.CNB_GIT_PASSWORD }}
-        run: |
-          git lfs install
-          git config --global lfs.locksverify true
-
-          sync_repo() {
-            set -e
-            local repo_json="$1"
-            local repo desc payload response http_code body
-            repo=$(echo "$repo_json" | jq -r '.name')
-            local log_prefix="[$repo]"
-            if [ "$repo" = ".github" ]; then
-              echo "$log_prefix Skipping"
-              return 0
-            fi
-            desc=$(echo "$repo_json" | jq -r '.description // empty')
-
-            # Build JSON payload with jq to handle special characters
-            if [ -z "$desc" ]; then
-              desc="Mirror of https://github.com/AviumUI/${repo}"
-            fi
-            payload=$(jq -n \
-              --arg name "$repo" \
-              --arg desc "$desc" \
-              '{name: $name, description: $desc, visibility: "public"}')
-
-            # Create repo on CNB if not exists
-            response=$(curl --silent --write-out "\n%{http_code}" \
-              --request POST \
-              --url "https://api.cnb.cool/MZWNET/AviumUI/-/repos" \
-              --header "Authorization: Bearer ${CNB_PASSWORD}" \
-              --header "Content-Type: application/json" \
-              --data "$payload")
-            http_code=$(echo "$response" | tail -n1)
-            body=$(echo "$response" | sed '$d')
-            if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
-              echo "$log_prefix Created repo on CNB"
-            elif [ "$http_code" -eq 409 ]; then
-              echo "$log_prefix Repo already exists, skipping creation"
-            else
-              echo "::error::$log_prefix Failed to create repo, HTTP ${http_code}: ${body}"
-              return 1
-            fi
-
-            local workdir="sync_${repo}"
-            echo "$log_prefix Cloning..."
-            git clone --mirror "https://github.com/AviumUI/${repo}.git" "${workdir}" 2>&1 | sed "s/^/$log_prefix /"
-            cd "${workdir}"
-            echo "$log_prefix Fetching LFS objects..."
-            git lfs fetch --all "https://github.com/AviumUI/${repo}.git" 2>&1 | sed "s/^/$log_prefix /"
-            git remote add cnb "https://cnb:${CNB_PASSWORD}@cnb.cool/MZWNET/AviumUI/${repo}.git"
-            echo "$log_prefix Pushing to CNB..."
-            git push cnb --force 'refs/heads/*:refs/heads/*' 'refs/tags/*:refs/tags/*' 2>&1 | sed "s/^/$log_prefix /"
-            git lfs push --all cnb 2>&1 | sed "s/^/$log_prefix /"
-            cd ..
-            rm -rf "${workdir}"
-            echo "$log_prefix Done"
-          }
-          export -f sync_repo
-          export CNB_PASSWORD
-
-          MAX_PARALLEL=5
-          gh api --paginate "/orgs/AviumUI/repos" --jq '.[] | @json' | \
-            tr '\n' '\0' | xargs -0 -n 1 -P "$MAX_PARALLEL" bash -c 'sync_repo "$1"' _
-
-          echo "All repos synced"
+        uses: MZWNET/org-snapshot-mirror@master
+        with:
+          source_org: "AviumUI"
+          source_token: ${{ secrets.GITHUB_TOKEN }}
+          source_repos: '["android_manifests", "android_art", "android_bootable_recovery", "android_build ,"android_build_soong", "android_device_lineage_sepolicy", "android_frameworks_av", "android_frameworks_base", "android_frameworks_libs_systemui", "android_frameworks_native", "android_frameworks_opt_telephony", "android_lineage-sdk", "android_packages_apps_AviumFreeWindow", "packages_apps_AviumSetup", "android_packages_apps_AviumSystemUIEX", "android_packages_apps_BtHelper", "android_packages_apps_CatShare", "android_packages_apps_DepthWallpaperHelper", "android_packages_apps_Launcher3", "android_packages_apps_LineageParts", "android_packages_apps_Note", "android_packages_apps_Messaging", "android_packages_apps_Settings", "android_packages_apps_SetupWizard", "android_packages_apps_Updater", "android_packages_apps_Via", "android_packages_apps_MoonOCR", "android_packages_apps_OmniJaws", "android_packages_apps_FeatureSettings", "android_packages_apps_MoonWidget", "android_packages_apps_AviumUseful", "android_packages_apps_SystemUITools", "android_packages_apps_GameSpace", "android_packages_apps_AviumLockscreenEdit", "android_packages_modules_Nfc", "android_packages_apps_ParanoidSense", "android_packages_apps_AviumLyricBarCore", "android_packages_apps_ColumbusService", "android_system_core", "android_vendor_lineage", "android_vendor_avium"]'
+          target_url: "https://cnb.cool/MZWNET/AviumUI/"
+          target_username: "MZWNET"
+          target_password: ${{ secrets.CNB_GIT_PASSWORD }}
+          target_platform: "cnb"
+          cnb_api_token: ${{ secrets.CNB_GIT_PASSWORD }}
+          cnb_org_path: "MZWNET/AviumUI"
+          max_parallel: "5"
