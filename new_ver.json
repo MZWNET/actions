@@ -1,0 +1,45 @@
+{
+  "version": 2,
+  "data": {
+    "bewlycat": {
+      "version": "v1.5.7",
+      "gitref": "refs/tags/v1.5.7",
+      "url": "https://github.com/keleus/BewlyCat/releases/tag/v1.5.7"
+    },
+    "fluffychat": {
+      "version": "v2.4.1",
+      "gitref": "refs/tags/v2.4.1",
+      "url": "https://github.com/krille-chan/fluffychat/releases/tag/v2.4.1"
+    },
+    "gpsrider": {
+      "version": "20250629.225105",
+      "revision": "66f256e27f26bd326fd3e7c359dd82192011deb4",
+      "url": "https://github.com/RomanK2311/GPSRider/commit/66f256e27f26bd326fd3e7c359dd82192011deb4"
+    },
+    "llama_cpp": {
+      "version": "b8123",
+      "gitref": "refs/tags/b8123",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/tag/b8123"
+    },
+    "nchat": {
+      "version": "v5.13.17",
+      "gitref": "refs/tags/v5.13.17",
+      "url": "https://github.com/d99kris/nchat/releases/tag/v5.13.17"
+    },
+    "openeuicc": {
+      "version": "unpriv-v1.5.1",
+      "revision": "e60f98fdeff9932f3bc14cff48377951d18cc8d4",
+      "url": "https://gitea.angry.im/PeterCxy/OpenEUICC/releases/tag/unpriv-v1.5.1"
+    },
+    "stable-diffusion_cpp": {
+      "version": "master-505-c5eb1e4",
+      "gitref": "refs/tags/master-505-c5eb1e4",
+      "url": "https://github.com/leejet/stable-diffusion.cpp/releases/tag/master-505-c5eb1e4"
+    },
+    "whisper_cpp": {
+      "version": "v1.8.3",
+      "gitref": "refs/tags/v1.8.3",
+      "url": "https://github.com/ggml-org/whisper.cpp/releases/tag/v1.8.3"
+    }
+  }
+}
