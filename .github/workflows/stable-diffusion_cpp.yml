@@ -24,6 +24,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: leejet/stable-diffusion.cpp
+          ref: ${{ github.event.inputs.version }}
           submodules: recursive
 
       - name: Build
@@ -60,6 +61,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: leejet/stable-diffusion.cpp
+          ref: ${{ github.event.inputs.version }}
           submodules: recursive
 
       - name: Build
@@ -100,6 +102,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: leejet/stable-diffusion.cpp
+          ref: ${{ github.event.inputs.version }}
           submodules: recursive
 
       - name: Build
@@ -122,6 +125,53 @@ jobs:
           name: cu130-avx512-linux
           path: build/dist/*
 
+  build_cu129_avx512_win:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup VS Dev Environment
+        uses: seanmiddleditch/gha-setup-vsdevenv@v5
+
+      - name: Install CUDA 12.9
+        id: install-cuda
+        uses: MZWNET/cuda-toolkit@master
+        with:
+          cuda: "12.9.1"
+          method: network
+          sub-packages: '["nvcc", "cudart", "cublas", "cublas_dev", "thrust", "visual_studio_integration"]'
+
+      - name: Setup ccache
+        uses: Chocobo1/setup-ccache-action@v1
+        with:
+          windows_compile_environment: msvc
+
+      - name: Install Ninja
+        uses: urkle/action-get-ninja@v1
+
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          repository: leejet/stable-diffusion.cpp
+          ref: ${{ github.event.inputs.version }}
+          submodules: recursive
+
+      - name: Build
+        run: |
+          mkdir build
+          cd build
+          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DSD_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=86 -DSD_FAST_SOFTMAX=ON -DGGML_AVX512=ON -DSD_BUILD_SHARED_LIBS=ON -DSD_BUILD_SHARED_GGML_LIB=ON
+          cmake --build . --config Release -j $env:NUMBER_OF_PROCESSORS
+
+      - name: Pack
+        run: |
+          cd build\bin\
+          7z a ..\dist\sd-${{ inputs.version }}-bin-win-avx512-cublas-cu129-x64.zip .
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: cu129-avx512-win
+          path: build/dist/*
+
   build_metal_macos:
     runs-on: macos-latest
     steps:
@@ -133,6 +183,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: leejet/stable-diffusion.cpp
+          ref: ${{ github.event.inputs.version }}
           submodules: recursive
 
       - name: Build
@@ -161,6 +212,7 @@ jobs:
         build_openblas_avx2_linux,
         build_sycl_avx2_linux,
         build_cu130_avx512_linux,
+        build_cu129_avx512_win,
         build_metal_macos,
       ]
     steps:
