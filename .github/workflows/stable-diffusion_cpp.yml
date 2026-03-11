@@ -126,7 +126,7 @@ jobs:
           path: build/dist/*
 
   build_cu129_avx512_win:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - name: Setup VS Dev Environment
         uses: seanmiddleditch/gha-setup-vsdevenv@v5
