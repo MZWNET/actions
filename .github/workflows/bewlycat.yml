@@ -60,7 +60,7 @@ jobs:
             "BewlyCat.app"
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: BewlyCat-safari-${{ inputs.version }}
           path: |

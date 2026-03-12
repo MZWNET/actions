@@ -52,7 +52,7 @@ jobs:
           tar -zcvf ../../../artifacts/nchat-${{ inputs.version }}-x86_64-binary.tar.gz .
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: tar_gz
           path: artifacts/nchat-${{ inputs.version }}-x86_64-binary.tar.gz
@@ -86,7 +86,7 @@ jobs:
           desc: "nchat is a terminal-based chat client for Linux and macOS with support for Telegram and WhatsApp."
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: deb
           path: ${{ steps.pack_deb.outputs.file_name }}
@@ -122,7 +122,7 @@ jobs:
           pkgdir: build/nchat-bin
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: zst
           path: ${{ steps.pack_zst.outputs.pkgfile0 }}
