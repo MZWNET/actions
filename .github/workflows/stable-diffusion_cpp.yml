@@ -12,215 +12,148 @@ permissions:
   contents: write
 
 jobs:
-  build_openblas_avx2_linux:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install Deps
-        run: |
-          sudo apt-get update
-          sudo apt-get install ccache ninja-build libopenblas-dev zip -y
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: openblas-avx2-linux
+            os: ubuntu-latest
+            install_deps: |
+              sudo apt-get update
+              sudo apt-get install ccache ninja-build libopenblas-dev zip -y
+            cmake_extra: "-DGGML_BLAS=ON -DGGML_BLAS_VENDOR=OpenBLAS -DGGML_AVX2=ON"
+            zip_name: linux-openblas-avx2-x64
 
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          repository: leejet/stable-diffusion.cpp
-          ref: ${{ github.event.inputs.version }}
-          submodules: recursive
+          - name: sycl-avx2-linux
+            os: ubuntu-latest
+            install_deps: |
+              wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
+              echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
+              sudo apt-get update
+              sudo apt-get install ccache intel-basekit intel-oneapi-mkl intel-oneapi-mkl-devel ninja-build zip -y
+            pre_build: "source /opt/intel/oneapi/setvars.sh"
+            cmake_extra: "-DSD_SYCL=ON -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DGGML_AVX2=ON"
+            zip_name: linux-sycl-avx2-x64
 
-      - name: Build
-        run: |
-          mkdir build
-          cd build
-          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DGGML_BLAS=ON -DGGML_BLAS_VENDOR=OpenBLAS -DGGML_AVX2=ON -DSD_BUILD_SHARED_LIBS=ON -DSD_BUILD_SHARED_GGML_LIB=ON
-          cmake --build . --config Release -j $(nproc)
+          - name: cu130-avx512-linux
+            os: ubuntu-latest
+            cuda: "13.0.1"
+            install_deps: sudo apt-get install ccache zip ninja-build -y
+            cmake_extra: "-DSD_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=86 -DSD_FAST_SOFTMAX=ON -DGGML_AVX512=ON"
+            zip_name: linux-avx512-cublas-cu130-x64
 
-      - name: Pack
-        run: |
-          mkdir -p build/dist
-          find . -name "*.so" -exec mv {} build/bin/ \;
-          cd build/bin/ || exit
-          zip ../dist/sd-${{ inputs.version }}-bin-linux-openblas-avx2-x64.zip ./*
+          - name: cu129-avx512-win
+            os: windows-latest
+            cuda: "12.9.1"
+            cuda_sub_packages: '["nvcc", "cudart", "cublas", "cublas_dev", "thrust", "visual_studio_integration"]'
+            cmake_extra: "-DSD_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=86 -DSD_FAST_SOFTMAX=ON -DGGML_AVX512=ON"
+            zip_name: win-avx512-cublas-cu129-x64
 
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v6
-        with:
-          name: openblas-avx2-linux
-          path: build/dist/*
+          - name: metal-macos
+            os: macos-latest
+            install_deps: brew install zip ccache ninja libomp
+            cmake_extra: >-
+              -DCMAKE_OSX_ARCHITECTURES="arm64" -DSD_METAL=ON -DGGML_METAL_USE_BF16=ON
+              -DGGML_METAL_EMBED_LIBRARY=ON -DCMAKE_INSTALL_RPATH='@loader_path'
+              -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON -DGGML_RPC=ON
+              -DOpenMP_ROOT=$(brew --prefix libomp)
+            zip_name: macos-metal-arm64
 
-  build_sycl_avx2_linux:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install Deps
-        run: |
-          wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
-          echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
-          sudo apt-get update
-          sudo apt-get install ccache intel-basekit intel-oneapi-mkl intel-oneapi-mkl-devel ninja-build zip -y
-
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          repository: leejet/stable-diffusion.cpp
-          ref: ${{ github.event.inputs.version }}
-          submodules: recursive
-
-      - name: Build
-        run: |
-          mkdir build
-          cd build
-          source /opt/intel/oneapi/setvars.sh
-          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DSD_SYCL=ON -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DGGML_AVX2=ON -DSD_BUILD_SHARED_LIBS=ON -DSD_BUILD_SHARED_GGML_LIB=ON
-          cmake --build . --config Release -j $(nproc)
-
-      - name: Pack
-        run: |
-          mkdir -p build/dist
-          find . -name "*.so" -exec mv {} build/bin/ \;
-          cd build/bin/ || exit
-          zip ../dist/sd-${{ inputs.version }}-bin-linux-sycl-avx2-x64.zip ./*
-
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v6
-        with:
-          name: sycl-avx2-linux
-          path: build/dist/*
-
-  build_cu130_avx512_linux:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install CUDA
-        id: install-cuda
-        uses: MZWNET/cuda-toolkit@master
-        with:
-          cuda: "13.0.1"
-          method: network
-
-      - name: Install Deps
-        run: sudo apt-get install ccache zip ninja-build -y
-
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          repository: leejet/stable-diffusion.cpp
-          ref: ${{ github.event.inputs.version }}
-          submodules: recursive
-
-      - name: Build
-        run: |
-          mkdir build
-          cd build
-          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DSD_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=86 -DSD_FAST_SOFTMAX=ON -DGGML_AVX512=ON -DSD_BUILD_SHARED_LIBS=ON -DSD_BUILD_SHARED_GGML_LIB=ON
-          cmake --build . --config Release -j $(nproc)
-
-      - name: Pack
-        run: |
-          mkdir -p build/dist
-          find . -name "*.so" -exec mv {} build/bin/ \;
-          cd build/bin/ || exit
-          zip ../dist/sd-${{ inputs.version }}-bin-linux-avx512-cublas-cu130-x64.zip ./*
-
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v6
-        with:
-          name: cu130-avx512-linux
-          path: build/dist/*
-
-  build_cu129_avx512_win:
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Setup VS Dev Environment
+        if: runner.os == 'Windows'
         uses: seanmiddleditch/gha-setup-vsdevenv@v5
 
-      - name: Install CUDA 12.9
-        id: install-cuda
+      - name: Install CUDA
+        if: matrix.cuda && !matrix.cuda_sub_packages
         uses: MZWNET/cuda-toolkit@master
         with:
-          cuda: "12.9.1"
+          cuda: ${{ matrix.cuda }}
           method: network
-          sub-packages: '["nvcc", "cudart", "cublas", "cublas_dev", "thrust", "visual_studio_integration"]'
 
-      - name: Setup ccache
+      - name: Install CUDA
+        if: matrix.cuda && matrix.cuda_sub_packages
+        uses: MZWNET/cuda-toolkit@master
+        with:
+          cuda: ${{ matrix.cuda }}
+          method: network
+          sub-packages: ${{ matrix.cuda_sub_packages }}
+
+      - name: Setup ccache (Windows)
+        if: runner.os == 'Windows'
         uses: Chocobo1/setup-ccache-action@v1
         with:
           windows_compile_environment: msvc
 
-      - name: Install Ninja
+      - name: Install Ninja (Windows)
+        if: runner.os == 'Windows'
         uses: urkle/action-get-ninja@v1
 
+      - name: Install Deps
+        if: matrix.install_deps
+        run: ${{ matrix.install_deps }}
+
       - name: Checkout
         uses: actions/checkout@v6
         with:
           repository: leejet/stable-diffusion.cpp
-          ref: ${{ github.event.inputs.version }}
+          ref: ${{ inputs.version }}
           submodules: recursive
 
-      - name: Build
+      - name: Parse semver
+        id: semver
+        shell: bash
+        run: |
+          COMMIT_COUNT=$(echo "${{ inputs.version }}" | grep -oP '(?<=-)\d+(?=-)')
+          echo "version=0.0.${COMMIT_COUNT}" >> "$GITHUB_OUTPUT"
+
+      - name: Build (Unix)
+        if: runner.os != 'Windows'
         run: |
           mkdir build
           cd build
-          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DSD_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=86 -DSD_FAST_SOFTMAX=ON -DGGML_AVX512=ON -DSD_BUILD_SHARED_LIBS=ON -DSD_BUILD_SHARED_GGML_LIB=ON
+          ${{ matrix.pre_build || '' }}
+          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DSD_BUILD_SHARED_LIBS=ON -DSD_BUILD_SHARED_GGML_LIB=ON -DSDCPP_BUILD_VERSION=${{ steps.semver.outputs.version }} ${{ matrix.cmake_extra }}
+          cmake --build . --config Release -j $(nproc 2>/dev/null || sysctl -n hw.physicalcpu)
+
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          mkdir build
+          cd build
+          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DSD_BUILD_SHARED_LIBS=ON -DSD_BUILD_SHARED_GGML_LIB=ON -DSDCPP_BUILD_VERSION=${{ steps.semver.outputs.version }} ${{ matrix.cmake_extra }}
           cmake --build . --config Release -j $env:NUMBER_OF_PROCESSORS
 
-      - name: Pack
-        run: |
-          cd build\bin\
-          7z a ..\dist\sd-${{ inputs.version }}-bin-win-avx512-cublas-cu129-x64.zip .
-
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v6
-        with:
-          name: cu129-avx512-win
-          path: build/dist/*
-
-  build_metal_macos:
-    runs-on: macos-latest
-    steps:
-      - name: Install Deps
-        run: |
-          brew install zip ccache ninja libomp
-
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          repository: leejet/stable-diffusion.cpp
-          ref: ${{ github.event.inputs.version }}
-          submodules: recursive
-
-      - name: Build
-        run: |
-          mkdir build
-          cd build
-          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64" -DSD_BUILD_SHARED_LIBS=ON -DSD_BUILD_SHARED_GGML_LIB=ON -DSD_METAL=ON -DGGML_METAL_USE_BF16=ON -DGGML_METAL_EMBED_LIBRARY=ON -DCMAKE_INSTALL_RPATH='@loader_path' -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON -DGGML_RPC=ON -DOpenMP_ROOT=$(brew --prefix libomp)
-          cmake --build . --config Release -j $(sysctl -n hw.physicalcpu)
-
-      - name: Pack
+      - name: Pack (Unix)
+        if: runner.os != 'Windows'
         run: |
           mkdir -p build/dist
+          find . -name "*.so" -o -name "*.dylib" | xargs -I {} mv {} build/bin/
           cd build/bin/ || exit
-          zip ../dist/sd-${{ inputs.version }}-bin-macos-metal-arm64.zip ./*
+          zip ../dist/sd-${{ inputs.version }}-bin-${{ matrix.zip_name }}.zip ./*
+
+      - name: Pack (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          cd build\bin\
+          7z a ..\dist\sd-${{ inputs.version }}-bin-${{ matrix.zip_name }}.zip .
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v6
         with:
-          name: metal-macos
+          name: ${{ matrix.name }}
           path: build/dist/*
 
   release:
     runs-on: ubuntu-latest
-    needs:
-      [
-        build_openblas_avx2_linux,
-        build_sycl_avx2_linux,
-        build_cu130_avx512_linux,
-        build_cu129_avx512_win,
-        build_metal_macos,
-      ]
+    needs: build
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v7
         with:
-          path: |
-            dist/
+          path: dist/
 
       - name: Release
         uses: softprops/action-gh-release@v2
