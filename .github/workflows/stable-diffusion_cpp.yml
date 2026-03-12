@@ -139,9 +139,9 @@ jobs:
         shell: bash
         run: |
           mkdir -p build/dist
-          if [ -n "${{ matrix.cuda }}" ] && [ "${{ runner.os }}" = "Linux" ] && [ -n "${{ matrix.cuda_sub_packages }}" ]]; then
+          if [ -n "${{ matrix.cuda }}" ] && [ "${{ runner.os }}" = "Linux" ] && [ -z "${{ matrix.cuda_sub_packages }}" ]; then
             rg --files -g 'libcudart.so*' "${{steps.cuda_toolkit_1.outputs.CUDA_PATH}}" | xargs -I{} cp {} build/bin/ 2>/dev/null || true
-          else if [ -n "${{ matrix.cuda }}" ] && [ "${{ runner.os }}" = "Linux" ] && [ -n "${{ matrix.cuda_sub_packages }}" ]]; then
+          elif [ -n "${{ matrix.cuda }}" ] && [ "${{ runner.os }}" = "Linux" ] && [ -n "${{ matrix.cuda_sub_packages }}" ]; then
             rg --files -g 'libcudart.so*' "${{steps.cuda_toolkit_2.outputs.CUDA_PATH}}" | xargs -I{} cp {} build/bin/ 2>/dev/null || true
           fi
           cd build/bin/
