@@ -69,6 +69,7 @@ jobs:
       - name: Install CUDA
         if: matrix.cuda && !matrix.cuda_sub_packages
         uses: MZWNET/cuda-toolkit@master
+        id: cuda_toolkit_1
         with:
           cuda: ${{ matrix.cuda }}
           method: network
@@ -76,6 +77,7 @@ jobs:
       - name: Install CUDA
         if: matrix.cuda && matrix.cuda_sub_packages
         uses: MZWNET/cuda-toolkit@master
+        id: cuda_toolkit_2
         with:
           cuda: ${{ matrix.cuda }}
           method: network
@@ -137,10 +139,13 @@ jobs:
         shell: bash
         run: |
           mkdir -p build/dist
-          if [ -n "${{ matrix.cuda }}" ] && [ "${{ runner.os }}" = "Linux" ]; then
-            rg --files -g 'libcudart.so*' "${CUDA_PATH:-/usr/local/cuda}" | xargs -I{} cp {} build/bin/ 2>/dev/null || true
+          if [ -n "${{ matrix.cuda }}" ] && [ "${{ runner.os }}" = "Linux" ] && [ -n "${{ matrix.cuda_sub_packages }}" ]]; then
+            rg --files -g 'libcudart.so*' "${{steps.cuda_toolkit_1.outputs.CUDA_PATH}}" | xargs -I{} cp {} build/bin/ 2>/dev/null || true
+          else if [ -n "${{ matrix.cuda }}" ] && [ "${{ runner.os }}" = "Linux" ] && [ -n "${{ matrix.cuda_sub_packages }}" ]]; then
+            rg --files -g 'libcudart.so*' "${{steps.cuda_toolkit_2.outputs.CUDA_PATH}}" | xargs -I{} cp {} build/bin/ 2>/dev/null || true
           fi
           cd build/bin/
+          ls -alh
           7z a ../dist/sd-${{ inputs.version }}-bin-${{ matrix.zip_name }}.zip .
 
       - name: Upload Artifacts
