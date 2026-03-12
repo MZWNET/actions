@@ -122,8 +122,9 @@ jobs:
         id: semver
         shell: bash
         run: |
-          COMMIT_COUNT=$(echo "${{ inputs.version }}" | cut -d'-' -f2)
-          echo "version=0.0.${COMMIT_COUNT}" >> "$GITHUB_OUTPUT"
+          VERSION=$(echo "${{ inputs.version }}" | cut -d'-' -f2)
+          echo "version=0.0.${VERSION}"
+          echo "version=0.0.${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Configure ccache
         shell: bash
