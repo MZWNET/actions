@@ -21,7 +21,7 @@ jobs:
             os: ubuntu-latest
             install_deps: |
               sudo apt-get update
-              sudo apt-get install ccache ninja-build libopenblas-dev zip -y
+              sudo apt-get install ccache ninja-build libopenblas-dev p7zip-full -y
             cmake_extra: "-DGGML_BLAS=ON -DGGML_BLAS_VENDOR=OpenBLAS -DGGML_AVX2=ON"
             zip_name: linux-openblas-avx2-x64
 
@@ -31,7 +31,7 @@ jobs:
               wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
               echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
               sudo apt-get update
-              sudo apt-get install ccache intel-basekit intel-oneapi-mkl intel-oneapi-mkl-devel ninja-build zip -y
+              sudo apt-get install ccache intel-basekit intel-oneapi-mkl intel-oneapi-mkl-devel ninja-build p7zip-full -y
             pre_build: "source /opt/intel/oneapi/setvars.sh"
             cmake_extra: "-DSD_SYCL=ON -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DGGML_AVX2=ON"
             zip_name: linux-sycl-avx2-x64
@@ -39,7 +39,7 @@ jobs:
           - name: cu130-avx512-linux
             os: ubuntu-latest
             cuda: "13.0.1"
-            install_deps: sudo apt-get install ccache zip ninja-build -y
+            install_deps: sudo apt-get install ccache p7zip-full ninja-build -y
             cmake_extra: "-DSD_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=86 -DSD_FAST_SOFTMAX=ON -DGGML_AVX512=ON"
             zip_name: linux-avx512-cublas-cu130-x64
 
@@ -52,7 +52,7 @@ jobs:
 
           - name: metal-macos
             os: macos-latest
-            install_deps: brew install zip ccache ninja libomp
+            install_deps: brew install ccache ninja libomp 7zip
             cmake_extra: >-
               -DCMAKE_OSX_ARCHITECTURES="arm64" -DSD_METAL=ON -DGGML_METAL_USE_BF16=ON
               -DGGML_METAL_EMBED_LIBRARY=ON -DCMAKE_INSTALL_RPATH='@loader_path'
@@ -95,6 +95,22 @@ jobs:
         if: matrix.install_deps
         run: ${{ matrix.install_deps }}
 
+      - name: Cache ccache (Unix)
+        if: runner.os != 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ccache-${{ matrix.name }}-${{ inputs.version }}
+          restore-keys: ccache-${{ matrix.name }}-
+
+      - name: Cache ccache (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\ccache
+          key: ccache-${{ matrix.name }}-${{ inputs.version }}
+          restore-keys: ccache-${{ matrix.name }}-
+
       - name: Checkout
         uses: actions/checkout@v6
         with:
@@ -109,36 +125,27 @@ jobs:
           COMMIT_COUNT=$(echo "${{ inputs.version }}" | cut -d'-' -f2)
           echo "version=0.0.${COMMIT_COUNT}" >> "$GITHUB_OUTPUT"
 
-      - name: Build (Unix)
-        if: runner.os != 'Windows'
+      - name: Configure ccache
+        shell: bash
+        run: |
+          ccache --set-config=max_size=1G
+          ccache --zero-stats
+
+      - name: Build
+        shell: bash
         run: |
           mkdir build
           cd build
           ${{ matrix.pre_build || '' }}
-          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DSD_BUILD_SHARED_LIBS=ON -DSD_BUILD_SHARED_GGML_LIB=ON -DSDCPP_BUILD_VERSION=${{ steps.semver.outputs.version }} ${{ matrix.cmake_extra }}
-          cmake --build . --config Release -j $(nproc 2>/dev/null || sysctl -n hw.physicalcpu)
+          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DSD_BUILD_SHARED_LIBS=ON -DSD_BUILD_SHARED_GGML_LIB=ON -DSDCPP_BUILD_VERSION=${{ steps.semver.outputs.version }} ${{ matrix.cmake_extra }}
+          cmake --build . --config Release -j $(nproc 2>/dev/null || sysctl -n hw.logicalcpu)
 
-      - name: Build (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          mkdir build
-          cd build
-          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DSD_BUILD_SHARED_LIBS=ON -DSD_BUILD_SHARED_GGML_LIB=ON -DSDCPP_BUILD_VERSION=${{ steps.semver.outputs.version }} ${{ matrix.cmake_extra }}
-          cmake --build . --config Release -j $env:NUMBER_OF_PROCESSORS
-
-      - name: Pack (Unix)
-        if: runner.os != 'Windows'
+      - name: Pack
+        shell: bash
         run: |
           mkdir -p build/dist
-          cd build/bin/ || exit
-          zip ../dist/sd-${{ inputs.version }}-bin-${{ matrix.zip_name }}.zip ./*
-
-      - name: Pack (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          mkdir -p build/dist
-          cd build\bin\
-          7z a ..\dist\sd-${{ inputs.version }}-bin-${{ matrix.zip_name }}.zip .
+          cd build/bin/
+          7z a ../dist/sd-${{ inputs.version }}-bin-${{ matrix.zip_name }}.zip .
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v7
