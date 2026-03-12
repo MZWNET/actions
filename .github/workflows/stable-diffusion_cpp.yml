@@ -36,12 +36,12 @@ jobs:
             cmake_extra: "-DSD_SYCL=ON -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DGGML_AVX2=ON"
             zip_name: linux-sycl-avx2-x64
 
-          - name: cu130-avx512-linux
+          - name: cu132-avx512-linux
             os: ubuntu-latest
-            cuda: "13.0.1"
+            cuda: "13.2.0"
             install_deps: sudo apt-get install ccache p7zip-full ninja-build -y
             cmake_extra: "-DSD_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=86 -DSD_FAST_SOFTMAX=ON -DGGML_AVX512=ON"
-            zip_name: linux-avx512-cublas-cu130-x64
+            zip_name: linux-avx512-cublas-cu132-x64
 
           - name: cu129-avx512-win
             os: windows-latest

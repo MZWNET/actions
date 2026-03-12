@@ -92,14 +92,14 @@ jobs:
           name: sycl-avx2-linux
           path: build/dist/*
 
-  build_cu130_avx512_linux:
+  build_cu132_avx512_linux:
     runs-on: ubuntu-latest
     steps:
       - name: Install CUDA
         id: install-cuda
         uses: MZWNET/cuda-toolkit@master
         with:
-          cuda: "13.0.1"
+          cuda: "13.2.0"
           method: network
 
       - name: Install Deps
@@ -132,7 +132,7 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: cu130-avx512-linux
+          name: cu132-avx512-linux
           path: build/dist/*
 
   release:
@@ -141,7 +141,7 @@ jobs:
       [
         build_intel_mkl_avx2_linux,
         build_sycl_avx2_linux,
-        build_cu130_avx512_linux,
+        build_cu132_avx512_linux,
       ]
     steps:
       - name: Download artifacts
