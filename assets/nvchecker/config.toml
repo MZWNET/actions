@@ -12,10 +12,6 @@ source = "github"
 github = "krille-chan/fluffychat"
 use_latest_release = true
 
-[gpsrider]
-source = "github"
-github = "RomanK2311/GPSRider"
-
 [llama_cpp]
 source = "github"
 github = "ggml-org/llama.cpp"
