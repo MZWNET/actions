@@ -130,13 +130,13 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           mkdir -p build/dist
-          find . -name "*.so" -o -name "*.dylib" | xargs -I {} mv {} build/bin/
           cd build/bin/ || exit
           zip ../dist/sd-${{ inputs.version }}-bin-${{ matrix.zip_name }}.zip ./*
 
       - name: Pack (Windows)
         if: runner.os == 'Windows'
         run: |
+          mkdir -p build/dist
           cd build\bin\
           7z a ..\dist\sd-${{ inputs.version }}-bin-${{ matrix.zip_name }}.zip .
 
