@@ -106,7 +106,7 @@ jobs:
         id: semver
         shell: bash
         run: |
-          COMMIT_COUNT=$(echo "${{ inputs.version }}" | grep -oP '(?<=-)\d+(?=-)')
+          COMMIT_COUNT=$(echo "${{ inputs.version }}" | cut -d'-' -f2)
           echo "version=0.0.${COMMIT_COUNT}" >> "$GITHUB_OUTPUT"
 
       - name: Build (Unix)
