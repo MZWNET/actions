@@ -118,14 +118,6 @@ jobs:
           ref: ${{ inputs.version }}
           submodules: recursive
 
-      - name: Parse semver
-        id: semver
-        shell: bash
-        run: |
-          VERSION=$(echo "${{ inputs.version }}" | cut -d'-' -f2)
-          echo "version=0.0.${VERSION}"
-          echo "version=0.0.${VERSION}" >> "$GITHUB_OUTPUT"
-
       - name: Configure ccache
         shell: bash
         run: |
@@ -138,7 +130,7 @@ jobs:
           mkdir build
           cd build
           ${{ matrix.pre_build || '' }}
-          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DSD_BUILD_SHARED_LIBS=ON -DSD_BUILD_SHARED_GGML_LIB=ON -DSDCPP_BUILD_VERSION=${{ steps.semver.outputs.version }} ${{ matrix.cmake_extra }}
+          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DSD_BUILD_SHARED_LIBS=ON -DSD_BUILD_SHARED_GGML_LIB=ON ${{ matrix.cmake_extra }}
           cmake --build . --config Release -j $(nproc 2>/dev/null || sysctl -n hw.logicalcpu)
 
       - name: Pack
