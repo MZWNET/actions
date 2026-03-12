@@ -95,7 +95,6 @@ jobs:
         shell: bash
         run: |
           mkdir -p build/dist
-          find . -name "*.so" -exec mv {} build/bin/ \;
           mv build/src/libwhisper.so.${{ needs.ersion.outputs.ersion }} build/bin/libwhisper.so
           cd build/bin/
           7z a ../dist/whisper-${{ inputs.version }}-bin-${{ matrix.zip_name }}.zip .
