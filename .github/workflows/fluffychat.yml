@@ -52,7 +52,7 @@ jobs:
           7z a ../../../../fluffychat-win-${{ inputs.version }}.zip .
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: win-artifact
           path: build/fluffychat-win-${{ inputs.version }}.zip

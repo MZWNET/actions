@@ -62,7 +62,7 @@ jobs:
           zip -r $SAVE_DIR/Magisk-Module-OpenEUICC-${{ needs.process-tag-name.outputs.semver }}.zip ./*
 
       - name: Upload Magisk Artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: Magisk-Module-OpenEUICC-${{ needs.process-tag-name.outputs.semver }}
           compression-level: 0
