@@ -62,7 +62,7 @@ jobs:
     needs: build
     steps:
       - name: Download tar.gz
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           path: |
             artifacts/
@@ -101,7 +101,7 @@ jobs:
           path: workspace
 
       - name: Download tar.gz
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           path: |
             artifacts/
@@ -132,7 +132,7 @@ jobs:
     needs: [pack_deb, pack_zst]
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           path: |
             dist/
