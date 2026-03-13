@@ -37,10 +37,10 @@ jobs:
             zip_name: linux-sycl-avx2-x64
 
           - name: cu132-avx512-linux
-            os: ubuntu-latest
+            os: ubuntu-22.04
             cuda: "13.2.0"
             install_deps: sudo apt-get install ccache p7zip-full ninja-build -y
-            cmake_extra: "-DSD_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=86 -DSD_FAST_SOFTMAX=ON -DGGML_AVX512=ON -DCMAKE_EXE_LINKER_FLAGS=\"-static\""
+            cmake_extra: "-DSD_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=86 -DSD_FAST_SOFTMAX=ON -DGGML_AVX512=ON"
             zip_name: linux-avx512-cublas-cu132-x64
 
           - name: cu129-avx512-win
