@@ -23,7 +23,7 @@ jobs:
 
       - name: Get short commit hash
         id: short_commit_hash
-        uses: prompt/actions-commit-hash@v3
+        uses: prompt/actions-commit-hash@v4
         with:
           commit: ${{ steps.commit_hash.outputs.hash }}
   build:
