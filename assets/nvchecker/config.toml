@@ -12,6 +12,11 @@ source = "github"
 github = "krille-chan/fluffychat"
 use_latest_release = true
 
+[kiro.rs]
+source = "github"
+github = "hank9999/kiro.rs"
+use_latest_release = true
+
 [llama_cpp]
 source = "github"
 github = "ggml-org/llama.cpp"

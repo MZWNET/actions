@@ -1,0 +1,104 @@
+name: Build Kiro.rs
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+            name: macOS-arm64
+          - platform: macos-latest
+            target: x86_64-apple-darwin
+            name: macOS-x64
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+            name: Windows-x64
+          - platform: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            name: Linux-x64
+          - platform: ubuntu-latest-arm
+            target: aarch64-unknown-linux-gnu
+            name: Linux-arm64
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          repository: hank9999/kiro.rs
+          submodules: recursive
+          ref: ${{ inputs.version }}
+
+      - name: Install Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: latest
+          check-latest: true
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Install admin-ui Dependencies
+        working-directory: admin-ui
+        run: pnpm install
+
+      - name: Build admin-ui
+        working-directory: admin-ui
+        run: pnpm build
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "rust-cache-${{ matrix.target }}"
+          cache-on-failure: true
+
+      - name: Build app
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: kiro-rs-${{ inputs.version }}-${{ matrix.name }}
+          path: |
+            target/${{ matrix.target }}/release/kiro-rs
+            target/${{ matrix.target }}/release/kiro-rs.exe
+
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: dist/
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: kiro-rs-${{ inputs.version }}
+          name: Binary build for Kiro.rs (${{ inputs.version }})
+          body: |
+            This release contains the binary of [Kiro.rs](https://github.com/hank9999/kiro.rs).
+          files: dist/**/*
+          fail_on_unmatched_files: true

@@ -15,7 +15,7 @@ jobs:
   build-safari:
     runs-on: macos-latest
     steps:
-      - name: Repository Checkout
+      - name: Checkout
         uses: actions/checkout@v6
         with:
           repository: keleus/BewlyCat
