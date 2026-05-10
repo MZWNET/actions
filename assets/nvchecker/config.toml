@@ -12,7 +12,7 @@ source = "github"
 github = "krille-chan/fluffychat"
 use_latest_release = true
 
-[kiro.rs]
+[kiro_rs]
 source = "github"
 github = "hank9999/kiro.rs"
 use_latest_release = true

@@ -76,6 +76,7 @@ jobs:
               "sd-",
               "ui-tars-desktop-",
               "whisper_cpp-",
+              "kiro-rs-",
             ];
             const KEEP_COUNT_MATCHED = 5;
             const KEEP_COUNT_OTHERS = 1;
