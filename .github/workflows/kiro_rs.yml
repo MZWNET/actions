@@ -73,14 +73,20 @@ jobs:
       - name: Build app
         run: cargo build --release --target ${{ matrix.target }}
 
-      - name: Rename Binary
+      - name: Package
         shell: bash
         run: |
           mkdir -p dist
           if [[ -f target/${{ matrix.target }}/release/kiro-rs.exe ]]; then
-            cp target/${{ matrix.target }}/release/kiro-rs.exe dist/kiro-${{ inputs.version }}-${{ matrix.target }}.exe
+            cp target/${{ matrix.target }}/release/kiro-rs.exe dist/
+            cd dist
+            7z a kiro-rs-${{ inputs.version }}-${{ matrix.target }}.zip kiro-rs.exe
+            rm kiro-rs.exe
           else
-            cp target/${{ matrix.target }}/release/kiro-rs dist/kiro-${{ inputs.version }}-${{ matrix.target }}
+            cp target/${{ matrix.target }}/release/kiro-rs dist/
+            cd dist
+            7z a kiro-rs-${{ inputs.version }}-${{ matrix.target }}.zip kiro-rs
+            rm kiro-rs
           fi
 
       - name: Upload build artifacts
