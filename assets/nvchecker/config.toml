@@ -12,6 +12,11 @@ source = "github"
 github = "krille-chan/fluffychat"
 use_latest_release = true
 
+[hydroxide]
+source = "github"
+github = "emersion/hydroxide"
+use_latest_release = true
+
 [kiro_rs]
 source = "github"
 github = "hank9999/kiro.rs"
