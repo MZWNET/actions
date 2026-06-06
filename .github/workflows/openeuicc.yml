@@ -50,7 +50,7 @@ jobs:
           distribution: "temurin"
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Build Release
         run: ./gradlew --no-daemon assembleRelease :app:assembleReleaseMagiskModuleDir
