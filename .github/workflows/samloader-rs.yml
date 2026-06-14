@@ -69,6 +69,10 @@ jobs:
           shared-key: "rust-cache-${{ matrix.target }}"
           cache-on-failure: true
 
+      - name: Install deps
+        if: matrix.platform == 'ubuntu-latest'
+        run: sudo apt-get install libudev-dev -y
+
       - name: Build app
         run: cargo build --release --target ${{ matrix.target }}
 
