@@ -39,13 +39,13 @@ jobs:
             cmake_extra: "-DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DGGML_SYCL=ON -DGGML_AVX2=ON -DLLAMA_CURL=ON -DLLAMA_LLGUIDANCE=ON"
             zip_name: linux-sycl-avx2-x64
 
-          - name: cu132-avx512-linux
+          - name: cu133-avx512-linux
             os: ubuntu-latest
-            cuda: "13.2.0"
+            cuda: "13.3.0"
             install_deps: |
               sudo apt-get install ccache ninja-build p7zip-full libcurl4-openssl-dev -y
             cmake_extra: "-DGGML_CUDA=ON -DGGML_AVX512=ON -DGGML_CUDA_FA_ALL_QUANTS=ON -DCMAKE_CUDA_ARCHITECTURES=86 -DLLAMA_CURL=ON -DLLAMA_LLGUIDANCE=ON"
-            zip_name: linux-avx512-cuda-cu13.2.0-x64
+            zip_name: linux-avx512-cuda-cu13.3.0-x64
 
     runs-on: ${{ matrix.os }}
     steps:

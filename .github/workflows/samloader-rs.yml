@@ -2,6 +2,11 @@ name: Build samloader-rs
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Unused thing"
+        required: false
+        type: string
 
 permissions:
   contents: write
