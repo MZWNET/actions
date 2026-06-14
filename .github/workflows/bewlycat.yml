@@ -67,7 +67,7 @@ jobs:
             extension-safari-macos/BewlyCat/build/Build/Products/Release/BewlyCat-${{ inputs.version }}.dmg
 
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: bewlycat-${{ inputs.version }}
           name: Binary build for BewlyCat Safari Extension (${{ inputs.version }})

@@ -115,7 +115,7 @@ jobs:
           path: dist/
 
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: whisper_cpp-${{ inputs.version }}
           name: Binary build for whisper.cpp (${{ inputs.version }})

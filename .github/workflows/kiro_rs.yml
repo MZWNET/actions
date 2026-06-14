@@ -105,7 +105,7 @@ jobs:
           path: dist/
 
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: kiro-rs-${{ inputs.version }}
           name: Binary build for Kiro.rs (${{ inputs.version }})

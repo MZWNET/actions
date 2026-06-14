@@ -117,7 +117,7 @@ jobs:
           path: dist/
 
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: llama_cpp-${{ inputs.version }}
           name: Binary build for llama.cpp (${{ inputs.version }})
