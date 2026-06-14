@@ -159,7 +159,7 @@ jobs:
           path: dist/
 
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: sd-${{ inputs.version }}
           name: Binary build for stable-diffusion.cpp (${{ inputs.version }})

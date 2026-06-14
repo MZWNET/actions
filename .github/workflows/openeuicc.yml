@@ -69,7 +69,7 @@ jobs:
           path: Magisk-Module-OpenEUICC-${{ needs.process-tag-name.outputs.semver }}.zip
 
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: openeuicc-${{ needs.process-tag-name.outputs.semver }}
           name: Binary build for OpenEUICC Magisk Module (${{ needs.process-tag-name.outputs.semver }})
