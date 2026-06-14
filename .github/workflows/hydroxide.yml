@@ -75,7 +75,7 @@ jobs:
           7z a dist/hydroxide-${{ inputs.version }}-${{ matrix.zip_name }}.zip hydroxide${{ matrix.ext }}
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: hydroxide-${{ inputs.version }}-${{ matrix.name }}
           path: dist/*
