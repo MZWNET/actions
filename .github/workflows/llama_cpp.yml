@@ -73,7 +73,7 @@ jobs:
           restore-keys: ccache-${{ matrix.name }}-
 
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: ggml-org/llama.cpp
           submodules: recursive
