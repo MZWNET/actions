@@ -78,7 +78,6 @@ jobs:
               "whisper_cpp-",
               "kiro-rs-",
               "hydroxide-",
-              "samloader-rs-",
             ];
             const KEEP_COUNT_MATCHED = 5;
             const KEEP_COUNT_OTHERS = 1;

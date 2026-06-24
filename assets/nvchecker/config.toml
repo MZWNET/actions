@@ -38,10 +38,6 @@ gitea = "PeterCxy/OpenEUICC"
 host = "gitea.angry.im"
 use_max_tag = true
 
-[samloader-rs]
-source = "github"
-github = "topjohnwu/samloader-rs"
-
 [stable-diffusion_cpp]
 source = "github"
 github = "leejet/stable-diffusion.cpp"
