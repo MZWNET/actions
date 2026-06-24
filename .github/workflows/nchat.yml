@@ -18,7 +18,7 @@ jobs:
       semver: ${{ steps.prepare_semver.outputs.semver }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: d99kris/nchat
           ref: ${{ inputs.version }}
@@ -96,7 +96,7 @@ jobs:
     needs: build
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: workspace
 
