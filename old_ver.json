@@ -1,0 +1,70 @@
+{
+  "version": 2,
+  "data": {
+    "bewlycat": {
+      "version": "v1.6.7",
+      "gitref": "refs/tags/v1.6.7",
+      "url": "https://github.com/keleus/BewlyCat/releases/tag/v1.6.7"
+    },
+    "fluffychat": {
+      "version": "v2.7.2",
+      "gitref": "refs/tags/v2.7.2",
+      "url": "https://github.com/krille-chan/fluffychat/releases/tag/v2.7.2"
+    },
+    "gpsrider": {
+      "version": "20250629.225105",
+      "revision": "66f256e27f26bd326fd3e7c359dd82192011deb4",
+      "url": "https://github.com/RomanK2311/GPSRider/commit/66f256e27f26bd326fd3e7c359dd82192011deb4"
+    },
+    "hydroxide": {
+      "version": "v0.2.32",
+      "gitref": "refs/tags/v0.2.32",
+      "url": "https://github.com/emersion/hydroxide/releases/tag/v0.2.32"
+    },
+    "kiro_rs": {
+      "version": "v2026.3.1",
+      "gitref": "refs/tags/v2026.3.1",
+      "url": "https://github.com/hank9999/kiro.rs/releases/tag/v2026.3.1"
+    },
+    "libolm": {
+      "version": "3.2.16",
+      "revision": "7e0c8277032e40308987257b711b38af8d77cc69",
+      "url": "https://gitlab.matrix.org/matrix-org/olm/-/tags/3.2.16"
+    },
+    "llama_cpp": {
+      "version": "b9859",
+      "gitref": "refs/tags/b9859",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/tag/b9859"
+    },
+    "minilpa": {
+      "version": "v1.1.1",
+      "gitref": "refs/tags/v1.1.1",
+      "url": "https://github.com/EsimMoe/MiniLPA/releases/tag/v1.1.1"
+    },
+    "nchat": {
+      "version": "v5.16.9",
+      "gitref": "refs/tags/v5.16.9",
+      "url": "https://github.com/d99kris/nchat/releases/tag/v5.16.9"
+    },
+    "openeuicc": {
+      "version": "unpriv-v1.6.2",
+      "revision": "1c70ca7a701adc0047c4d6c12579a9b072a3a244",
+      "url": "https://gitea.angry.im/PeterCxy/OpenEUICC/releases/tag/unpriv-v1.6.2"
+    },
+    "samloader-rs": {
+      "version": "20260623.091445",
+      "revision": "c67b7d26e54b075f6a9db3c1d7d7d53d71f56fd0",
+      "url": "https://github.com/topjohnwu/samloader-rs/commit/c67b7d26e54b075f6a9db3c1d7d7d53d71f56fd0"
+    },
+    "stable-diffusion_cpp": {
+      "version": "master-743-3590aa8",
+      "gitref": "refs/tags/master-743-3590aa8",
+      "url": "https://github.com/leejet/stable-diffusion.cpp/releases/tag/master-743-3590aa8"
+    },
+    "whisper_cpp": {
+      "version": "v1.9.1",
+      "gitref": "refs/tags/v1.9.1",
+      "url": "https://github.com/ggml-org/whisper.cpp/releases/tag/v1.9.1"
+    }
+  }
+}
