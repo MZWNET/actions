@@ -12,22 +12,7 @@ permissions:
   contents: write
 
 jobs:
-  ersion:
-    runs-on: ubuntu-latest
-    outputs:
-      ersion: ${{ steps.ersion.outputs.ersion }}
-    steps:
-      - name: Process Version for No v Prefix
-        id: ersion
-        shell: python
-        run: |
-          import subprocess
-          version = "${{ inputs.version }}"
-          ersion = version.replace("v", "")
-          subprocess.run(f'echo ersion={ersion} >> $GITHUB_OUTPUT', shell=True, check=True)
-
   build:
-    needs: ersion
     strategy:
       fail-fast: false
       matrix:
@@ -95,7 +80,6 @@ jobs:
         shell: bash
         run: |
           mkdir -p build/dist
-          mv build/src/libwhisper.so.${{ needs.ersion.outputs.ersion }} build/bin/libwhisper.so
           cd build/bin/
           7z a ../dist/whisper-${{ inputs.version }}-bin-${{ matrix.zip_name }}.zip .
 
