@@ -7,11 +7,6 @@ source = "github"
 github = "keleus/BewlyCat"
 use_latest_release = true
 
-[fluffychat]
-source = "github"
-github = "krille-chan/fluffychat"
-use_latest_release = true
-
 [hydroxide]
 source = "github"
 github = "emersion/hydroxide"

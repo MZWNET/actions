@@ -68,16 +68,13 @@ jobs:
             const main = require('${{ github.workspace }}/tools/clean_release/main.js');
             const TARGET_PREFIXES = [
               "bewlycat-",
-              "fluffychat-",
-              "gpsrider-",
+              "hydroxide-",
+              "kiro-rs-",
               "llama_cpp-",
               "nchat-",
               "openeuicc-",
               "sd-",
-              "ui-tars-desktop-",
               "whisper_cpp-",
-              "kiro-rs-",
-              "hydroxide-",
             ];
             const KEEP_COUNT_MATCHED = 5;
             const KEEP_COUNT_OTHERS = 1;
