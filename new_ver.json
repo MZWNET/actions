@@ -1,0 +1,52 @@
+{
+  "version": 2,
+  "data": {
+    "bewlycat": {
+      "version": "v1.7.6",
+      "gitref": "refs/tags/v1.7.6",
+      "url": "https://github.com/keleus/BewlyCat/releases/tag/v1.7.6",
+      "creation_time": "2026-08-18T16:24:01Z"
+    },
+    "hydroxide": {
+      "version": "v0.2.32",
+      "gitref": "refs/tags/v0.2.32",
+      "url": "https://github.com/emersion/hydroxide/releases/tag/v0.2.32",
+      "creation_time": "2026-05-10T16:54:23Z"
+    },
+    "kiro_rs": {
+      "version": "v2026.3.1",
+      "gitref": "refs/tags/v2026.3.1",
+      "url": "https://github.com/hank9999/kiro.rs/releases/tag/v2026.3.1",
+      "creation_time": "2026-03-30T12:23:38Z"
+    },
+    "llama_cpp": {
+      "version": "v0.2.0",
+      "gitref": "refs/tags/v0.2.0",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/tag/v0.2.0",
+      "creation_time": "2026-08-21T18:32:48Z"
+    },
+    "nchat": {
+      "version": "v5.18.20",
+      "gitref": "refs/tags/v5.18.20",
+      "url": "https://github.com/d99kris/nchat/releases/tag/v5.18.20",
+      "creation_time": "2026-08-15T06:44:33Z"
+    },
+    "openeuicc": {
+      "version": "unpriv-v1.7.0",
+      "revision": "62c27cf1d82d629328f0a2a545e4b7e1788d8ab3",
+      "url": "https://gitea.angry.im/PeterCxy/OpenEUICC/releases/tag/unpriv-v1.7.0"
+    },
+    "stable-diffusion_cpp": {
+      "version": "master-827-97d2990",
+      "gitref": "refs/tags/master-827-97d2990",
+      "url": "https://github.com/leejet/stable-diffusion.cpp/releases/tag/master-827-97d2990",
+      "creation_time": "2026-08-19T19:41:42Z"
+    },
+    "whisper_cpp": {
+      "version": "b4938",
+      "gitref": "refs/tags/b4938",
+      "url": "https://github.com/ggml-org/whisper.cpp/releases/tag/b4938",
+      "creation_time": "2026-08-20T11:33:19Z"
+    }
+  }
+}
