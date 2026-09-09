@@ -7,6 +7,11 @@ source = "github"
 github = "keleus/BewlyCat"
 use_latest_release = true
 
+[cloud-mail]
+source = "github"
+github = "maillab/cloud-mail"
+use_latest_release = true
+
 [hydroxide]
 source = "github"
 github = "emersion/hydroxide"

@@ -1,0 +1,203 @@
+name: Deploy Cloud Mail to Cloudflare Workers
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloud-mail-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      NAME: ${{ secrets.NAME || vars.NAME || 'cloud-mail' }}
+      CUSTOM_DOMAIN: ${{ secrets.CUSTOM_DOMAIN || vars.CUSTOM_DOMAIN }}
+      DOMAIN: ${{ secrets.DOMAIN || vars.DOMAIN }}
+      ADMIN: ${{ secrets.ADMIN || vars.ADMIN }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET || vars.JWT_SECRET }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || vars.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+      D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID || vars.D1_DATABASE_ID }}
+      KV_NAMESPACE_ID: ${{ secrets.KV_NAMESPACE_ID || vars.KV_NAMESPACE_ID }}
+      R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME || vars.R2_BUCKET_NAME }}
+      PROJECT_LINK: ${{ secrets.PROJECT_LINK || vars.PROJECT_LINK }}
+      AI_MODEL: ${{ secrets.AI_MODEL || vars.AI_MODEL || '@cf/meta/llama-3.1-8b-instruct-fast' }}
+      ANALYSIS_CACHE: ${{ secrets.ANALYSIS_CACHE || vars.ANALYSIS_CACHE || false }}
+      # Upstream reads this from CF_EMAIL, but exporting it as CLOUDFLARE_EMAIL
+      # would collide with wrangler's global-API-key auth variable.
+      ENABLE_SEND_EMAIL: ${{ secrets.CF_EMAIL || vars.CF_EMAIL || false }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          repository: maillab/cloud-mail
+          ref: ${{ inputs.version }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11
+
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: "pnpm"
+          cache-dependency-path: "./mail-worker/pnpm-lock.yaml"
+
+      - name: Install Deps
+        working-directory: ./mail-worker
+        run: pnpm install --frozen-lockfile
+
+      - name: Disable Wrangler Telemetry
+        working-directory: ./mail-worker
+        run: pnpm wrangler telemetry disable
+
+      - name: Setup Wrangler Config
+        working-directory: ./mail-worker
+        run: |
+          CONFIG_FILE="wrangler-action.toml"
+
+          if [ -z "$JWT_SECRET" ] || grep -q '[?%#/\\]' <<< "$JWT_SECRET"; then
+            echo "::error::JWT_SECRET is empty or contains invalid characters (?, %, #, /, \\)."
+            exit 1
+          fi
+
+          if ! jq -e 'type == "array"' <<< "$DOMAIN" > /dev/null 2>&1; then
+            echo "::error::DOMAIN must be a JSON array (e.g. [\"example.com\"])."
+            exit 1
+          fi
+
+          for var in ADMIN CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_API_TOKEN; do
+            if [ -z "${!var}" ]; then
+              echo "::error::$var cannot be empty."
+              exit 1
+            fi
+          done
+
+          if [ -z "$CUSTOM_DOMAIN" ]; then
+            echo "::warning::CUSTOM_DOMAIN is not set, falling back to the workers.dev URL."
+            sed -i '/\[\[routes\]\]/,/^$/d' "$CONFIG_FILE"
+          fi
+
+          if [ -z "$R2_BUCKET_NAME" ]; then
+            sed -i '/\[\[r2_buckets\]\]/,/^$/d' "$CONFIG_FILE"
+          fi
+
+          if [ -z "$PROJECT_LINK" ]; then
+            sed -i '/^project_link = /d' "$CONFIG_FILE"
+          fi
+
+          if [ "$(tr '[:upper:]' '[:lower:]' <<< "$ENABLE_SEND_EMAIL")" = "true" ]; then
+            printf '\n[[send_email]]\nname = "email"\n' >> "$CONFIG_FILE"
+          fi
+
+          sed -i "s|\${NAME}|${NAME}|g" "$CONFIG_FILE"
+          sed -i "s|\${CUSTOM_DOMAIN}|${CUSTOM_DOMAIN}|g" "$CONFIG_FILE"
+          sed -i "s|\"\${DOMAIN}\"|${DOMAIN}|g" "$CONFIG_FILE"
+          sed -i "s|\${ADMIN}|${ADMIN}|g" "$CONFIG_FILE"
+          sed -i "s|\${JWT_SECRET}|${JWT_SECRET}|g" "$CONFIG_FILE"
+          sed -i "s|\${R2_BUCKET_NAME}|${R2_BUCKET_NAME}|g" "$CONFIG_FILE"
+          sed -i "s|\${PROJECT_LINK}|${PROJECT_LINK}|g" "$CONFIG_FILE"
+          sed -i "s|\${ANALYSIS_CACHE}|${ANALYSIS_CACHE}|g" "$CONFIG_FILE"
+          sed -i "s|\${AI_MODEL}|${AI_MODEL}|g" "$CONFIG_FILE"
+
+      - name: Setup KV Namespace
+        working-directory: ./mail-worker
+        run: |
+          CONFIG_FILE="wrangler-action.toml"
+
+          if [ -n "$KV_NAMESPACE_ID" ]; then
+            sed -i "s|\${KV_NAMESPACE_ID}|${KV_NAMESPACE_ID}|g" "$CONFIG_FILE"
+            exit 0
+          fi
+
+          KV_LIST=$(pnpm wrangler kv namespace list)
+
+          if ! jq -e ".[] | select(.title == \"$NAME\")" <<< "$KV_LIST" > /dev/null; then
+            echo "KV namespace $NAME does not exist, creating it..."
+            pnpm wrangler kv namespace create "$NAME"
+            KV_LIST=$(pnpm wrangler kv namespace list)
+          fi
+
+          KV_ID=$(jq -r ".[] | select(.title == \"$NAME\") | .id" <<< "$KV_LIST")
+          sed -i "s|\${KV_NAMESPACE_ID}|$KV_ID|g" "$CONFIG_FILE"
+
+      - name: Setup D1 Database
+        working-directory: ./mail-worker
+        run: |
+          CONFIG_FILE="wrangler-action.toml"
+
+          if [ -n "$D1_DATABASE_ID" ]; then
+            sed -i "s|\${D1_DATABASE_ID}|${D1_DATABASE_ID}|g" "$CONFIG_FILE"
+            exit 0
+          fi
+
+          DB_LIST=$(pnpm wrangler d1 list --json)
+
+          if ! jq -e ".[] | select(.name == \"$NAME\")" <<< "$DB_LIST" > /dev/null; then
+            echo "D1 database $NAME does not exist, creating it..."
+            pnpm wrangler d1 create "$NAME"
+            DB_LIST=$(pnpm wrangler d1 list --json)
+          fi
+
+          D1_ID=$(jq -r ".[] | select(.name == \"$NAME\") | .uuid" <<< "$DB_LIST")
+          sed -i "s|\${D1_DATABASE_ID}|$D1_ID|g" "$CONFIG_FILE"
+
+      - name: Deploy
+        id: deploy
+        working-directory: ./mail-worker
+        run: |
+          set +e
+          pnpm wrangler deploy -c wrangler-action.toml > deploy.log 2>&1
+          DEPLOY_EXIT_CODE=$?
+          set -e
+
+          # The workers.dev URL and the configured domains are private, so redact
+          # them before the log reaches the (public) run output.
+          sed -E -e 's|https://[A-Za-z0-9.-]+\.workers\.dev|(***)|g' \
+                 -e 's|env\.domain .*|env.domain (***)|' deploy.log
+
+          if [ $DEPLOY_EXIT_CODE -ne 0 ]; then
+            echo "::error::wrangler deploy failed"
+            exit 1
+          fi
+
+          WORKER_URL=$(grep -o "https://[A-Za-z0-9.-]*\.workers\.dev" deploy.log | head -n 1 || true)
+
+          if [ -n "$WORKER_URL" ]; then
+            echo "::add-mask::$WORKER_URL"
+          fi
+
+          echo "worker_url=$WORKER_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Initialize Database
+        run: |
+          sleep 15
+
+          WORKER_URL="${CUSTOM_DOMAIN:+https://$CUSTOM_DOMAIN}"
+          WORKER_URL="${WORKER_URL:-${{ steps.deploy.outputs.worker_url }}}"
+
+          if [ -z "$WORKER_URL" ]; then
+            echo "::error::No reachable URL. Please set CUSTOM_DOMAIN."
+            exit 1
+          fi
+
+          HTTP_CODE=$(curl -sL -w "%{http_code}" -o response.txt "$WORKER_URL/api/init/${JWT_SECRET}")
+          RESPONSE_BODY=$(cat response.txt)
+
+          if [ "$RESPONSE_BODY" != "success" ]; then
+            echo "::error::Database initialization failed. HTTP: $HTTP_CODE, Response: $RESPONSE_BODY"
+            exit 1
+          fi
