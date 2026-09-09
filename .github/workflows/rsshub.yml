@@ -1,0 +1,84 @@
+name: Deploy RSSHub to Vercel
+
+on:
+  schedule:
+    - cron: "0 0 * * 1"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "RSSHub ref to deploy"
+        required: false
+        default: master
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rsshub-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN || vars.VERCEL_TOKEN }}
+      # The Vercel CLI reads these two straight from the environment, which is
+      # what links the checkout to an existing project without `vercel link`.
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID || vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID || vars.VERCEL_PROJECT_ID }}
+
+    steps:
+      - name: Check Vercel Credentials
+        run: |
+          for var in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
+            if [ -z "${!var}" ]; then
+              echo "::error::$var cannot be empty."
+              exit 1
+            fi
+          done
+
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          repository: DIYgod/RSSHub
+          ref: ${{ inputs.ref || 'master' }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel Environment
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      # Building on the runner instead of on Vercel: RSSHub's bundle is heavy and
+      # the runner is roomier than a Hobby build container. `vercel build` still
+      # honours vercel.json and the project settings fetched above.
+      - name: Build
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy
+        run: |
+          set +e
+          vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN" > deploy.log 2>&1
+          DEPLOY_EXIT_CODE=$?
+          set -e
+
+          # The deployment URL and the inspector link both identify a private
+          # instance, so redact them before the log reaches the (public) run output.
+          sed -E -e 's|https://[A-Za-z0-9.-]+\.vercel\.app|(***)|g' \
+                 -e 's|https://vercel\.com/[^[:space:]]+|(***)|g' deploy.log
+
+          if [ $DEPLOY_EXIT_CODE -ne 0 ]; then
+            echo "::error::vercel deploy failed"
+            exit 1
+          fi
