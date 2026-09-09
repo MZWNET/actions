@@ -1,0 +1,248 @@
+name: Deploy OpenList Worker to Cloudflare Workers
+
+on:
+  schedule:
+    - cron: "0 0 * * 1"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "OpenList-Worker ref to deploy"
+        required: false
+        default: main
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: openlist-worker-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      # Repository secrets and variables are shared by every workflow here, and
+      # cloud-mail.yml already claims the unprefixed NAME / CUSTOM_DOMAIN /
+      # JWT_SECRET / KV_NAMESPACE_ID names, hence the OPENLIST_ prefix.
+      NAME: ${{ secrets.OPENLIST_NAME || vars.OPENLIST_NAME || 'openlist-tsworkers' }}
+      CUSTOM_DOMAIN: ${{ secrets.OPENLIST_CUSTOM_DOMAIN || vars.OPENLIST_CUSTOM_DOMAIN }}
+      JWT_SECRET: ${{ secrets.OPENLIST_JWT_SECRET || vars.OPENLIST_JWT_SECRET }}
+      ENCRYPTION_SECRET: ${{ secrets.OPENLIST_ENCRYPTION_SECRET || vars.OPENLIST_ENCRYPTION_SECRET }}
+      DB_DRIVER: ${{ secrets.OPENLIST_DB_DRIVER || vars.OPENLIST_DB_DRIVER || 'json' }}
+      DB_JSON_BACKEND: ${{ secrets.OPENLIST_DB_JSON_BACKEND || vars.OPENLIST_DB_JSON_BACKEND }}
+      KV_NAMESPACE_ID: ${{ secrets.OPENLIST_KV_NAMESPACE_ID || vars.OPENLIST_KV_NAMESPACE_ID }}
+      D1_DATABASE_ID: ${{ secrets.OPENLIST_D1_DATABASE_ID || vars.OPENLIST_D1_DATABASE_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || vars.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - name: Check Cloudflare Credentials
+        run: |
+          for var in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
+            if [ -z "${!var}" ]; then
+              echo "::error::$var cannot be empty."
+              exit 1
+            fi
+          done
+
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          repository: OpenListTeam/OpenList-Worker
+          ref: ${{ inputs.ref || 'main' }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      # Upstream's own CI and both one-click deploy buttons install without the
+      # lockfile gate; the lockfile trails package.json often enough that
+      # --frozen-lockfile would break the unattended weekly run.
+      - name: Install Deps
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Disable Wrangler Telemetry
+        run: pnpm wrangler telemetry disable
+
+      # The backend ships no frontend of its own: this clones OpenListTeam/
+      # OpenList-Frontend, pulls the released translations and builds it into
+      # ./dist, which wrangler.toml serves through the ASSETS binding.
+      - name: Build Frontend
+        run: node scripts/fetch-frontend.mjs
+
+      - name: Setup Wrangler Config
+        run: |
+          CONFIG_FILE="wrangler.toml"
+
+          case "$DB_DRIVER" in
+            json | kv | d1) ;;
+            mysql)
+              echo "::error::DB_DRIVER=mysql only works on a Node runtime, not on Workers."
+              exit 1
+              ;;
+            *)
+              echo "::error::DB_DRIVER must be one of: json, kv, d1."
+              exit 1
+              ;;
+          esac
+
+          if [ -n "$DB_JSON_BACKEND" ]; then
+            case "$DB_JSON_BACKEND" in
+              auto | blob | kv | cf_rest) ;;
+              *)
+                echo "::error::DB_JSON_BACKEND must be one of: auto, blob, kv, cf_rest."
+                exit 1
+                ;;
+            esac
+          fi
+
+          # These land in [vars] as plain TOML strings, so keep them to a
+          # charset that needs no escaping (openssl rand -hex 32 qualifies).
+          for var in JWT_SECRET ENCRYPTION_SECRET; do
+            value="${!var}"
+            if [ -n "$value" ] && ! grep -qE '^[A-Za-z0-9._~-]{16,}$' <<< "$value"; then
+              echo "::error::$var must be >= 16 chars of [A-Za-z0-9._~-]. Generate one with: openssl rand -hex 32"
+              exit 1
+            fi
+          done
+
+          sed -i "s|^name = .*|name = \"${NAME}\"|" "$CONFIG_FILE"
+          sed -i "s|^DB_DRIVER = .*|DB_DRIVER = \"${DB_DRIVER}\"|" "$CONFIG_FILE"
+
+          if [ -n "$DB_JSON_BACKEND" ]; then
+            sed -i "s|^# DB_JSON_BACKEND = .*|DB_JSON_BACKEND = \"${DB_JSON_BACKEND}\"|" "$CONFIG_FILE"
+          fi
+
+          if [ -n "$JWT_SECRET" ]; then
+            sed -i "s|^JWT_SECRET = .*|JWT_SECRET = \"${JWT_SECRET}\"|" "$CONFIG_FILE"
+          else
+            # Dropping the empty binding lets the Worker generate a key on first
+            # request and persist it in KV, so logins survive the weekly redeploy.
+            sed -i '/^JWT_SECRET = /d' "$CONFIG_FILE"
+          fi
+
+          if [ -n "$ENCRYPTION_SECRET" ]; then
+            sed -i "s|^ENCRYPTION_SECRET = .*|ENCRYPTION_SECRET = \"${ENCRYPTION_SECRET}\"|" "$CONFIG_FILE"
+          else
+            echo "::warning::ENCRYPTION_SECRET is not set; storage tokens will be stored unencrypted."
+            sed -i '/^ENCRYPTION_SECRET = /d' "$CONFIG_FILE"
+          fi
+
+          if [ -n "$CUSTOM_DOMAIN" ]; then
+            if ! grep -qE '^[A-Za-z0-9.-]+$' <<< "$CUSTOM_DOMAIN"; then
+              echo "::error::CUSTOM_DOMAIN must be a bare hostname (e.g. list.example.com)."
+              exit 1
+            fi
+            # Masked here rather than relying on the secret being a secret: it is
+            # also readable from vars, and wrangler echoes routes on deploy.
+            echo "::add-mask::$CUSTOM_DOMAIN"
+            printf '\n[[routes]]\npattern = "%s"\ncustom_domain = true\n' "$CUSTOM_DOMAIN" >> "$CONFIG_FILE"
+          else
+            # Upstream ships workers_dev = false with no route, which would leave
+            # the deployment unreachable.
+            echo "::warning::CUSTOM_DOMAIN is not set, falling back to the workers.dev URL."
+            sed -i 's|^workers_dev = false$|workers_dev = true|' "$CONFIG_FILE"
+          fi
+
+      - name: Setup KV Namespace
+        run: |
+          CONFIG_FILE="wrangler.toml"
+
+          if [ -z "$KV_NAMESPACE_ID" ]; then
+            KV_LIST=$(pnpm wrangler kv namespace list)
+
+            if ! jq -e --arg t "$NAME" '.[] | select(.title == $t)' <<< "$KV_LIST" > /dev/null; then
+              echo "KV namespace $NAME does not exist, creating it..."
+              pnpm wrangler kv namespace create "$NAME"
+              KV_LIST=$(pnpm wrangler kv namespace list)
+            fi
+
+            KV_NAMESPACE_ID=$(jq -r --arg t "$NAME" '.[] | select(.title == $t) | .id' <<< "$KV_LIST")
+          fi
+
+          # Upstream declares the binding without an id and leans on wrangler's
+          # automatic provisioning. Pinning the id keeps every weekly run bound to
+          # the same namespace — a re-provisioned one would come up empty, losing
+          # the config, the users and the generated JWT key.
+          sed -i "/^binding = \"KV\"$/a id = \"${KV_NAMESPACE_ID}\"" "$CONFIG_FILE"
+
+      - name: Setup D1 Database
+        if: env.DB_DRIVER == 'd1'
+        run: |
+          CONFIG_FILE="wrangler.toml"
+
+          if [ -z "$D1_DATABASE_ID" ]; then
+            DB_LIST=$(pnpm wrangler d1 list --json)
+
+            if ! jq -e --arg n "$NAME" '.[] | select(.name == $n)' <<< "$DB_LIST" > /dev/null; then
+              echo "D1 database $NAME does not exist, creating it..."
+              pnpm wrangler d1 create "$NAME"
+              DB_LIST=$(pnpm wrangler d1 list --json)
+            fi
+
+            D1_DATABASE_ID=$(jq -r --arg n "$NAME" '.[] | select(.name == $n) | .uuid' <<< "$DB_LIST")
+          fi
+
+          # Upstream keeps this block commented out. No schema step is needed:
+          # the Worker runs its CREATE TABLE IF NOT EXISTS set on first request.
+          printf '\n[[d1_databases]]\nbinding = "DB"\ndatabase_name = "%s"\ndatabase_id = "%s"\n' \
+            "$NAME" "$D1_DATABASE_ID" >> "$CONFIG_FILE"
+
+      - name: Deploy
+        id: deploy
+        run: |
+          set +e
+          pnpm wrangler deploy > deploy.log 2>&1
+          DEPLOY_EXIT_CODE=$?
+          set -e
+
+          # The workers.dev URL identifies a private instance, so redact it
+          # before the log reaches the (public) run output.
+          sed -E 's|https://[A-Za-z0-9.-]+\.workers\.dev|(***)|g' deploy.log
+
+          if [ $DEPLOY_EXIT_CODE -ne 0 ]; then
+            echo "::error::wrangler deploy failed"
+            exit 1
+          fi
+
+          WORKER_URL=$(grep -o "https://[A-Za-z0-9.-]*\.workers\.dev" deploy.log | head -n 1 || true)
+
+          if [ -n "$WORKER_URL" ]; then
+            echo "::add-mask::$WORKER_URL"
+          fi
+
+          echo "worker_url=$WORKER_URL" >> "$GITHUB_OUTPUT"
+
+      # /api/healthz is the readiness probe: it reads the config through the same
+      # path a request takes and answers 503 when the store is unreachable, so it
+      # proves the bindings wired up above actually work.
+      - name: Verify Deployment
+        run: |
+          WORKER_URL="${CUSTOM_DOMAIN:+https://$CUSTOM_DOMAIN}"
+          WORKER_URL="${WORKER_URL:-${{ steps.deploy.outputs.worker_url }}}"
+
+          if [ -z "$WORKER_URL" ]; then
+            echo "::error::No reachable URL. Please set OPENLIST_CUSTOM_DOMAIN."
+            exit 1
+          fi
+
+          for attempt in $(seq 1 6); do
+            sleep 15
+            HTTP_CODE=$(curl -sL -o response.json -w "%{http_code}" "$WORKER_URL/api/healthz" || true)
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "Deployment is healthy."
+              exit 0
+            fi
+            echo "Attempt $attempt: HTTP $HTTP_CODE"
+          done
+
+          echo "::error::Health check failed (HTTP $HTTP_CODE). A brand new custom domain may still be provisioning its certificate."
+          cat response.json || true
+          exit 1
