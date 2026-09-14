@@ -28,10 +28,11 @@ jobs:
       # JWT_SECRET / KV_NAMESPACE_ID names, hence the OPENLIST_ prefix.
       NAME: ${{ secrets.OPENLIST_NAME || vars.OPENLIST_NAME || 'openlist-tsworkers' }}
       CUSTOM_DOMAIN: ${{ secrets.OPENLIST_CUSTOM_DOMAIN || vars.OPENLIST_CUSTOM_DOMAIN }}
+      # Signs tokens and encrypts stored drive credentials and 2FA secrets;
+      # upstream folded the former ENCRYPTION_SECRET into this one key.
       JWT_SECRET: ${{ secrets.OPENLIST_JWT_SECRET || vars.OPENLIST_JWT_SECRET }}
-      ENCRYPTION_SECRET: ${{ secrets.OPENLIST_ENCRYPTION_SECRET || vars.OPENLIST_ENCRYPTION_SECRET }}
-      DB_DRIVER: ${{ secrets.OPENLIST_DB_DRIVER || vars.OPENLIST_DB_DRIVER || 'json' }}
-      DB_JSON_BACKEND: ${{ secrets.OPENLIST_DB_JSON_BACKEND || vars.OPENLIST_DB_JSON_BACKEND }}
+      DB_DRIVER: ${{ secrets.OPENLIST_DB_DRIVER || vars.OPENLIST_DB_DRIVER || 'auto' }}
+      DB_FORMAT: ${{ secrets.OPENLIST_DB_FORMAT || vars.OPENLIST_DB_FORMAT }}
       KV_NAMESPACE_ID: ${{ secrets.OPENLIST_KV_NAMESPACE_ID || vars.OPENLIST_KV_NAMESPACE_ID }}
       D1_DATABASE_ID: ${{ secrets.OPENLIST_D1_DATABASE_ID || vars.OPENLIST_D1_DATABASE_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || vars.CLOUDFLARE_API_TOKEN }}
@@ -73,66 +74,43 @@ jobs:
 
       # The backend ships no frontend of its own: this clones OpenListTeam/
       # OpenList-Frontend, pulls the released translations and builds it into
-      # ./dist, which wrangler.toml serves through the ASSETS binding.
+      # ./dist, which wrangler serves through the ASSETS binding.
       - name: Build Frontend
         run: node scripts/fetch-frontend.mjs
 
       - name: Setup Wrangler Config
         run: |
-          CONFIG_FILE="wrangler.toml"
+          set -o pipefail
+          CONFIG_FILE="wrangler-action.json"
 
+          # blob is EdgeOne/ESA only, mysql needs a Node runtime, and do/cfkv
+          # want bindings and credentials this workflow does not wire up.
           case "$DB_DRIVER" in
-            json | kv | d1) ;;
-            mysql)
-              echo "::error::DB_DRIVER=mysql only works on a Node runtime, not on Workers."
-              exit 1
-              ;;
+            auto | kv | d1) ;;
             *)
-              echo "::error::DB_DRIVER must be one of: json, kv, d1."
+              echo "::error::DB_DRIVER must be one of: auto, kv, d1."
               exit 1
               ;;
           esac
 
-          if [ -n "$DB_JSON_BACKEND" ]; then
-            case "$DB_JSON_BACKEND" in
-              auto | blob | kv | cf_rest) ;;
-              *)
-                echo "::error::DB_JSON_BACKEND must be one of: auto, blob, kv, cf_rest."
-                exit 1
-                ;;
-            esac
-          fi
-
-          # These land in [vars] as plain TOML strings, so keep them to a
-          # charset that needs no escaping (openssl rand -hex 32 qualifies).
-          for var in JWT_SECRET ENCRYPTION_SECRET; do
-            value="${!var}"
-            if [ -n "$value" ] && ! grep -qE '^[A-Za-z0-9._~-]{16,}$' <<< "$value"; then
-              echo "::error::$var must be >= 16 chars of [A-Za-z0-9._~-]. Generate one with: openssl rand -hex 32"
+          case "$DB_FORMAT" in
+            "" | map | key | sql) ;;
+            *)
+              echo "::error::DB_FORMAT must be one of: map, key, sql."
               exit 1
-            fi
-          done
-
-          sed -i "s|^name = .*|name = \"${NAME}\"|" "$CONFIG_FILE"
-          sed -i "s|^DB_DRIVER = .*|DB_DRIVER = \"${DB_DRIVER}\"|" "$CONFIG_FILE"
-
-          if [ -n "$DB_JSON_BACKEND" ]; then
-            sed -i "s|^# DB_JSON_BACKEND = .*|DB_JSON_BACKEND = \"${DB_JSON_BACKEND}\"|" "$CONFIG_FILE"
-          fi
+              ;;
+          esac
 
           if [ -n "$JWT_SECRET" ]; then
-            sed -i "s|^JWT_SECRET = .*|JWT_SECRET = \"${JWT_SECRET}\"|" "$CONFIG_FILE"
+            if [ "${#JWT_SECRET}" -lt 16 ]; then
+              echo "::error::JWT_SECRET must be at least 16 characters. Generate one with: openssl rand -hex 32"
+              exit 1
+            fi
           else
-            # Dropping the empty binding lets the Worker generate a key on first
-            # request and persist it in KV, so logins survive the weekly redeploy.
-            sed -i '/^JWT_SECRET = /d' "$CONFIG_FILE"
-          fi
-
-          if [ -n "$ENCRYPTION_SECRET" ]; then
-            sed -i "s|^ENCRYPTION_SECRET = .*|ENCRYPTION_SECRET = \"${ENCRYPTION_SECRET}\"|" "$CONFIG_FILE"
-          else
-            echo "::warning::ENCRYPTION_SECRET is not set; storage tokens will be stored unencrypted."
-            sed -i '/^ENCRYPTION_SECRET = /d' "$CONFIG_FILE"
+            # The Worker generates a signing key and an encryption key on first
+            # use and persists both in KV, so this still works — but neither is
+            # recoverable if the namespace is ever lost.
+            echo "::warning::JWT_SECRET is not set; the Worker will generate and store its own keys."
           fi
 
           if [ -n "$CUSTOM_DOMAIN" ]; then
@@ -143,17 +121,56 @@ jobs:
             # Masked here rather than relying on the secret being a secret: it is
             # also readable from vars, and wrangler echoes routes on deploy.
             echo "::add-mask::$CUSTOM_DOMAIN"
-            printf '\n[[routes]]\npattern = "%s"\ncustom_domain = true\n' "$CUSTOM_DOMAIN" >> "$CONFIG_FILE"
           else
             # Upstream ships workers_dev = false with no route, which would leave
             # the deployment unreachable.
             echo "::warning::CUSTOM_DOMAIN is not set, falling back to the workers.dev URL."
-            sed -i 's|^workers_dev = false$|workers_dev = true|' "$CONFIG_FILE"
           fi
+
+          # Upstream's wrangler.jsonc carries comments and trailing commas, so it
+          # has to go through a JSONC reader before jq can take over.
+          cat > jsonc.cjs <<'EOF'
+          const src = require("fs").readFileSync("wrangler.jsonc", "utf8")
+          let out = ""
+
+          for (let i = 0; i < src.length; i++) {
+            if (src[i] === '"') {
+              let j = i + 1
+              while (src[j] !== '"') j += src[j] === "\\" ? 2 : 1
+              out += src.slice(i, j + 1)
+              i = j
+            } else if (src[i] === "/" && src[i + 1] === "/") {
+              i = src.indexOf("\n", i)
+              if (i < 0) break
+            } else if (src[i] === "/" && src[i + 1] === "*") {
+              i = src.indexOf("*/", i) + 1
+            } else if (src[i] === "}" || src[i] === "]") {
+              out = out.replace(/,\s*$/, "") + src[i]
+            } else {
+              out += src[i]
+            }
+          }
+
+          process.stdout.write(JSON.stringify(JSON.parse(out)))
+          EOF
+
+          node jsonc.cjs | jq \
+            --arg name "$NAME" \
+            --arg domain "$CUSTOM_DOMAIN" \
+            --arg driver "$DB_DRIVER" \
+            --arg format "$DB_FORMAT" \
+            --arg jwt "$JWT_SECRET" \
+            '.name = $name
+             | .vars.DB_DRIVER = $driver
+             | if $format == "" then . else .vars.DB_FORMAT = $format end
+             | if $jwt == "" then . else .vars.JWT_SECRET = $jwt end
+             | if $domain == "" then .workers_dev = true
+               else .routes = [{ pattern: $domain, custom_domain: true }] end' \
+            > "$CONFIG_FILE"
 
       - name: Setup KV Namespace
         run: |
-          CONFIG_FILE="wrangler.toml"
+          CONFIG_FILE="wrangler-action.json"
 
           if [ -z "$KV_NAMESPACE_ID" ]; then
             KV_LIST=$(pnpm wrangler kv namespace list)
@@ -167,16 +184,20 @@ jobs:
             KV_NAMESPACE_ID=$(jq -r --arg t "$NAME" '.[] | select(.title == $t) | .id' <<< "$KV_LIST")
           fi
 
-          # Upstream declares the binding without an id and leans on wrangler's
-          # automatic provisioning. Pinning the id keeps every weekly run bound to
-          # the same namespace — a re-provisioned one would come up empty, losing
-          # the config, the users and the generated JWT key.
-          sed -i "/^binding = \"KV\"$/a id = \"${KV_NAMESPACE_ID}\"" "$CONFIG_FILE"
+          # Upstream declares no storage binding at all, so its deploy button
+          # cannot over-provision. KV is bound whatever DB_DRIVER says: the
+          # generated keys, the token revocation list and the login-failure
+          # counters only ever reach KV or Blob, never D1. Pinning the id keeps
+          # every weekly run on the same namespace — a re-provisioned one would
+          # come up empty.
+          jq --arg id "$KV_NAMESPACE_ID" \
+            '.kv_namespaces = [{ binding: "KV", id: $id }]' \
+            "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
 
       - name: Setup D1 Database
         if: env.DB_DRIVER == 'd1'
         run: |
-          CONFIG_FILE="wrangler.toml"
+          CONFIG_FILE="wrangler-action.json"
 
           if [ -z "$D1_DATABASE_ID" ]; then
             DB_LIST=$(pnpm wrangler d1 list --json)
@@ -190,16 +211,17 @@ jobs:
             D1_DATABASE_ID=$(jq -r --arg n "$NAME" '.[] | select(.name == $n) | .uuid' <<< "$DB_LIST")
           fi
 
-          # Upstream keeps this block commented out. No schema step is needed:
-          # the Worker runs its CREATE TABLE IF NOT EXISTS set on first request.
-          printf '\n[[d1_databases]]\nbinding = "DB"\ndatabase_name = "%s"\ndatabase_id = "%s"\n' \
-            "$NAME" "$D1_DATABASE_ID" >> "$CONFIG_FILE"
+          # No schema step is needed: the Worker runs its CREATE TABLE IF NOT
+          # EXISTS set on first request.
+          jq --arg n "$NAME" --arg id "$D1_DATABASE_ID" \
+            '.d1_databases = [{ binding: "DB", database_name: $n, database_id: $id }]' \
+            "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
 
       - name: Deploy
         id: deploy
         run: |
           set +e
-          pnpm wrangler deploy > deploy.log 2>&1
+          pnpm wrangler deploy -c wrangler-action.json > deploy.log 2>&1
           DEPLOY_EXIT_CODE=$?
           set -e
 
