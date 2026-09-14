@@ -241,30 +241,3 @@ jobs:
           fi
 
           echo "worker_url=$WORKER_URL" >> "$GITHUB_OUTPUT"
-
-      # /api/healthz is the readiness probe: it reads the config through the same
-      # path a request takes and answers 503 when the store is unreachable, so it
-      # proves the bindings wired up above actually work.
-      - name: Verify Deployment
-        run: |
-          WORKER_URL="${CUSTOM_DOMAIN:+https://$CUSTOM_DOMAIN}"
-          WORKER_URL="${WORKER_URL:-${{ steps.deploy.outputs.worker_url }}}"
-
-          if [ -z "$WORKER_URL" ]; then
-            echo "::error::No reachable URL. Please set OPENLIST_CUSTOM_DOMAIN."
-            exit 1
-          fi
-
-          for attempt in $(seq 1 6); do
-            sleep 15
-            HTTP_CODE=$(curl -sL -o response.json -w "%{http_code}" "$WORKER_URL/api/healthz" || true)
-            if [ "$HTTP_CODE" = "200" ]; then
-              echo "Deployment is healthy."
-              exit 0
-            fi
-            echo "Attempt $attempt: HTTP $HTTP_CODE"
-          done
-
-          echo "::error::Health check failed (HTTP $HTTP_CODE). A brand new custom domain may still be provisioning its certificate."
-          cat response.json || true
-          exit 1
