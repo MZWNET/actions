@@ -55,7 +55,7 @@ jobs:
           cache: "pnpm"
 
       - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+        run: pnpm install -g vercel@latest
 
       - name: Pull Vercel Environment
         run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
