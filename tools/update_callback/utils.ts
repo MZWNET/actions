@@ -62,7 +62,8 @@ async function getUpdateInfo(
     const configItem = config[name];
 
     if (
-      configItem.use_latest_release === true || configItem.use_max_tag === true
+      configItem.source === "npm" || configItem.use_latest_release === true ||
+      configItem.use_max_tag === true
     ) {
       continue;
     }

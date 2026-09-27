@@ -43,6 +43,10 @@ source = "github"
 github = "leejet/stable-diffusion.cpp"
 use_latest_release = true
 
+[twikoo-netlify]
+source = "npm"
+npm = "twikoo-netlify"
+
 [whisper_cpp]
 source = "github"
 github = "ggml-org/whisper.cpp"

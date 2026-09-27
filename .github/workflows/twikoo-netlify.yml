@@ -1,0 +1,81 @@
+name: Deploy Twikoo to Netlify
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Unused thing"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: twikoo-netlify-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      # netlify-cli reads both from the environment, and creates a fresh site on every run without the ID.
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN || vars.NETLIFY_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: ${{ secrets.TWIKOO_NETLIFY_SITE_ID || vars.TWIKOO_NETLIFY_SITE_ID }}
+
+    steps:
+      - name: Check Netlify Credentials
+        run: |
+          for var in NETLIFY_AUTH_TOKEN NETLIFY_SITE_ID; do
+            if [ -z "${!var}" ]; then
+              echo "::error::$var cannot be empty."
+              exit 1
+            fi
+          done
+
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          repository: twikoojs/twikoo-netlify
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 12
+
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
+      - name: Install Deps
+        env:
+          # nvchecker fires before pnpm's default one-day release age would let the new version in.
+          PNPM_CONFIG_MINIMUM_RELEASE_AGE: 0
+          # Netlify's function bundler misses transitive deps in pnpm's symlinked node_modules.
+          PNPM_CONFIG_NODE_LINKER: hoisted
+        run: pnpm update -L
+
+      - name: Install Netlify CLI
+        run: npm install --global netlify-cli@latest
+
+      # MONGODB_URI stays in the site's environment variables on Netlify, as upstream documents.
+      - name: Deploy
+        run: |
+          # Publishing the checkout root would also serve the lockfile and this very log.
+          mkdir public
+          mv index.html public/
+
+          set +e
+          netlify deploy --prod --no-build --dir public --functions netlify/functions > deploy.log 2>&1
+          DEPLOY_EXIT_CODE=$?
+          set -e
+
+          # Every URL here (site, custom domain, dashboard, API) identifies the private instance.
+          sed -E 's|https?://[^[:space:]<>"]+|(***)|g' deploy.log
+
+          if [ $DEPLOY_EXIT_CODE -ne 0 ]; then
+            echo "::error::netlify deploy failed"
+            exit 1
+          fi

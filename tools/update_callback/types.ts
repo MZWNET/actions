@@ -5,10 +5,11 @@ type Config = {
   };
 } & {
   [key: string]: {
-    source: "github" | "gitlab" | "gitea";
+    source: "github" | "gitlab" | "gitea" | "npm";
     github?: string;
     gitlab?: string;
     gitea?: string;
+    npm?: string;
     host?: string;
     use_latest_release?: boolean;
     use_max_tag?: boolean;
