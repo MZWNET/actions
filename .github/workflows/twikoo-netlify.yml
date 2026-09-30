@@ -58,7 +58,7 @@ jobs:
         run: pnpm update -L
 
       - name: Install Netlify CLI
-        run: pnpm install --g netlify-cli@latest
+        run: pnpm install -g netlify-cli@latest
 
       # MONGODB_URI stays in the site's environment variables on Netlify, as upstream documents.
       - name: Deploy
