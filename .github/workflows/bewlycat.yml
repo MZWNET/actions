@@ -44,6 +44,18 @@ jobs:
             -configuration Release \
             -derivedDataPath build
 
+      - name: Sign
+        run: |
+          KEYCHAIN=$RUNNER_TEMP/signing.keychain-db
+          echo "${{ secrets.APPLE_DEVELOPMENT_P12 }}" | base64 -d > "$RUNNER_TEMP/signing.p12"
+          security create-keychain -p "" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/signing.p12" -k "$KEYCHAIN" -P "${{ secrets.APPLE_DEVELOPMENT_P12_PASSWORD }}" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" "$KEYCHAIN"
+          cd extension-safari-macos/BewlyCat/build/Build/Products/Release
+          codesign --force --sign "Apple Development" --keychain "$KEYCHAIN" --options runtime --timestamp=none --preserve-metadata=entitlements \
+            "BewlyCat.app/Contents/PlugIns/BewlyCat Extension.appex" \
+            "BewlyCat.app"
+
       - name: Pack
         run: |
           brew install create-dmg
