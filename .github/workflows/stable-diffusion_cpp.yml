@@ -32,6 +32,8 @@ jobs:
               echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
               sudo apt-get update
               sudo apt-get install ccache intel-basekit intel-oneapi-mkl intel-oneapi-mkl-devel ninja-build p7zip-full -y
+            # icpx 2026.2+ rejects libwebm's -std=c++11 check under the global -fsycl, which ggml-sycl already sets on its own target
+            patch: sed -i 's/ -fsycl")/")/' CMakeLists.txt
             pre_build: "source /opt/intel/oneapi/setvars.sh"
             cmake_extra: "-DSD_SYCL=ON -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DGGML_AVX2=ON"
             zip_name: linux-sycl-avx2-x64
@@ -53,6 +55,8 @@ jobs:
           - name: metal-macos
             os: macos-latest
             install_deps: brew install ccache ninja libomp 7zip
+            # leejet/ggml keeps changing its sd.cpp-specific ops without updating this RPC op-count assert
+            patch: sed -i '' '/static_assert(GGML_OP_COUNT/d' ggml/include/ggml-rpc.h
             cmake_extra: >-
               -DCMAKE_OSX_ARCHITECTURES="arm64" -DSD_METAL=ON -DGGML_METAL_USE_BF16=ON
               -DGGML_METAL_EMBED_LIBRARY=ON -DCMAKE_INSTALL_RPATH='@loader_path'
@@ -119,6 +123,10 @@ jobs:
           repository: leejet/stable-diffusion.cpp
           ref: ${{ inputs.version }}
           submodules: recursive
+
+      - name: Patch
+        if: matrix.patch
+        run: ${{ matrix.patch }}
 
       - name: Configure ccache
         shell: bash
