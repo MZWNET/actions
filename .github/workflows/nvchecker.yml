@@ -43,8 +43,11 @@ jobs:
         run: uv tool install nvchecker
 
       - name: Check update
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          nvchecker -c assets/nvchecker/config.toml
+          printf '[keys]\n"github.com" = "%s"\n' "$GITHUB_TOKEN" > "$RUNNER_TEMP/nvchecker_keys.toml"
+          nvchecker -c assets/nvchecker/config.toml -k "$RUNNER_TEMP/nvchecker_keys.toml"
           nvcmp -c assets/nvchecker/config.toml -j > assets/nvchecker/result.json
           nvtake -c assets/nvchecker/config.toml --all
 

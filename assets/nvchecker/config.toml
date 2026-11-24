@@ -31,6 +31,7 @@ use_latest_release = true
 source = "github"
 github = "ggml-org/llama.cpp"
 use_latest_release = true
+include_prereleases = true
 
 [nchat]
 source = "github"
