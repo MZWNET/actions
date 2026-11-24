@@ -1,0 +1,194 @@
+name: Deploy Uptarn to Cloudflare Workers
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uptarn-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      # Repository secrets and variables are shared by every workflow here,
+      # hence the UPTARN_ prefix
+      NAME: ${{ secrets.UPTARN_NAME || vars.UPTARN_NAME || 'uptarn' }}
+      CUSTOM_DOMAIN: ${{ secrets.UPTARN_CUSTOM_DOMAIN || vars.UPTARN_CUSTOM_DOMAIN }}
+      PUBLIC_BASE_URL: ${{ secrets.UPTARN_PUBLIC_BASE_URL || vars.UPTARN_PUBLIC_BASE_URL }}
+      RETENTION_DAYS: ${{ secrets.UPTARN_RETENTION_DAYS || vars.UPTARN_RETENTION_DAYS }}
+      FAILURE_THRESHOLD: ${{ secrets.UPTARN_FAILURE_THRESHOLD || vars.UPTARN_FAILURE_THRESHOLD }}
+      AUTO_REGISTER: ${{ secrets.UPTARN_AUTO_REGISTER || vars.UPTARN_AUTO_REGISTER }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || vars.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+      D1_DATABASE_ID: ${{ secrets.UPTARN_D1_DATABASE_ID || vars.UPTARN_D1_DATABASE_ID }}
+      ADMIN_PASSWORD: ${{ secrets.UPTARN_ADMIN_PASSWORD || vars.UPTARN_ADMIN_PASSWORD }}
+      ADMIN_PASSWORD_SHA256: ${{ secrets.UPTARN_ADMIN_PASSWORD_SHA256 || vars.UPTARN_ADMIN_PASSWORD_SHA256 }}
+      ADMIN_TOKEN: ${{ secrets.UPTARN_ADMIN_TOKEN || vars.UPTARN_ADMIN_TOKEN }}
+      ENROLLMENT_TOKEN: ${{ secrets.UPTARN_ENROLLMENT_TOKEN || vars.UPTARN_ENROLLMENT_TOKEN }}
+      CF_ACCESS_TEAM_DOMAIN: ${{ secrets.UPTARN_CF_ACCESS_TEAM_DOMAIN || vars.UPTARN_CF_ACCESS_TEAM_DOMAIN }}
+      CF_ACCESS_AUD: ${{ secrets.UPTARN_CF_ACCESS_AUD || vars.UPTARN_CF_ACCESS_AUD }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.UPTARN_TELEGRAM_BOT_TOKEN || vars.UPTARN_TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.UPTARN_TELEGRAM_CHAT_ID || vars.UPTARN_TELEGRAM_CHAT_ID }}
+      MATRIX_HOMESERVER: ${{ secrets.UPTARN_MATRIX_HOMESERVER || vars.UPTARN_MATRIX_HOMESERVER }}
+      MATRIX_ACCESS_TOKEN: ${{ secrets.UPTARN_MATRIX_ACCESS_TOKEN || vars.UPTARN_MATRIX_ACCESS_TOKEN }}
+      MATRIX_ROOM_ID: ${{ secrets.UPTARN_MATRIX_ROOM_ID || vars.UPTARN_MATRIX_ROOM_ID }}
+
+    steps:
+      - name: Check Cloudflare Credentials
+        run: |
+          for var in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID PUBLIC_BASE_URL; do
+            if [ -z "${!var}" ]; then
+              echo "::error::$var cannot be empty."
+              exit 1
+            fi
+          done
+
+          if ! grep -qE '^https://[^/[:space:]]+$' <<< "$PUBLIC_BASE_URL"; then
+            echo "::error::PUBLIC_BASE_URL must be an https:// URL without a path (e.g. https://status.example.com)."
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          repository: so1ve/uptarn
+          ref: ${{ inputs.version }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "26"
+          cache: "pnpm"
+
+      - name: Install Deps
+        env:
+          # nvchecker fires before pnpm's default one-day release age would let the new version in
+          PNPM_CONFIG_MINIMUM_RELEASE_AGE: 0
+        run: pnpm install --frozen-lockfile
+
+      - name: Disable Wrangler Telemetry
+        run: pnpm wrangler telemetry disable
+
+      - name: Build Dashboard
+        run: pnpm run build
+
+      # Upstream's wrangler.jsonc currently carries no comments, so plain jq
+      # can take over without a JSONC pass
+      - name: Setup Wrangler Config
+        run: |
+          CONFIG_FILE="wrangler-action.json"
+
+          if [ -n "$CUSTOM_DOMAIN" ]; then
+            if ! grep -qE '^[A-Za-z0-9.-]+$' <<< "$CUSTOM_DOMAIN"; then
+              echo "::error::CUSTOM_DOMAIN must be a bare hostname (e.g. status.example.com)."
+              exit 1
+            fi
+            # Also readable from vars, and wrangler echoes routes on deploy
+            echo "::add-mask::$CUSTOM_DOMAIN"
+          else
+            echo "::warning::CUSTOM_DOMAIN is not set, falling back to the workers.dev URL; make sure PUBLIC_BASE_URL points at it."
+          fi
+
+          jq \
+            --arg name "$NAME" \
+            --arg domain "$CUSTOM_DOMAIN" \
+            --arg base_url "$PUBLIC_BASE_URL" \
+            --arg retention "$RETENTION_DAYS" \
+            --arg threshold "$FAILURE_THRESHOLD" \
+            --arg auto_register "$AUTO_REGISTER" \
+            '.name = $name
+             | del(."$schema")
+             | .vars.PUBLIC_BASE_URL = $base_url
+             | if $retention == "" then . else .vars.RETENTION_DAYS = $retention end
+             | if $threshold == "" then . else .vars.FAILURE_THRESHOLD = $threshold end
+             | if $auto_register == "" then . else .vars.AUTO_REGISTER = $auto_register end
+             | if $domain == "" then .workers_dev = true
+               else .routes = [{ pattern: $domain, custom_domain: true }] end' \
+            wrangler.jsonc > "$CONFIG_FILE"
+
+      - name: Setup D1 Database
+        run: |
+          CONFIG_FILE="wrangler-action.json"
+
+          if [ -z "$D1_DATABASE_ID" ]; then
+            DB_LIST=$(pnpm wrangler d1 list --json)
+
+            if ! jq -e --arg n "$NAME" '.[] | select(.name == $n)' <<< "$DB_LIST" > /dev/null; then
+              echo "D1 database $NAME does not exist, creating it..."
+              pnpm wrangler d1 create "$NAME"
+              DB_LIST=$(pnpm wrangler d1 list --json)
+            fi
+
+            D1_DATABASE_ID=$(jq -r --arg n "$NAME" '.[] | select(.name == $n) | .uuid' <<< "$DB_LIST")
+          fi
+
+          # A re-provisioned database would come up empty
+          jq --arg n "$NAME" --arg id "$D1_DATABASE_ID" \
+            '.d1_databases = [{ binding: "DB", database_name: $n, database_id: $id, migrations_dir: "migrations" }]' \
+            "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
+
+      - name: Apply Migrations
+        run: pnpm wrangler d1 migrations apply DB --remote -c wrangler-action.json
+
+      # Wrangler secrets survive redeploys, so only the ones given here are
+      # (re)uploaded and anything managed in the dashboard is left alone.
+      # Settings that identify the instance go here too, since wrangler
+      # prints plain vars in the public deploy log
+      - name: Upload Secrets
+        run: |
+          upload_secret() {
+            if [ -n "${!1}" ]; then
+              echo "${!1}" | pnpm wrangler secret put "$1" -c wrangler-action.json
+            else
+              echo "::warning::$1 is not set, skipping."
+            fi
+          }
+
+          upload_secret ADMIN_PASSWORD
+          upload_secret ADMIN_PASSWORD_SHA256
+          upload_secret ADMIN_TOKEN
+          upload_secret ENROLLMENT_TOKEN
+          upload_secret CF_ACCESS_TEAM_DOMAIN
+          upload_secret CF_ACCESS_AUD
+          upload_secret TELEGRAM_BOT_TOKEN
+          upload_secret TELEGRAM_CHAT_ID
+          upload_secret MATRIX_HOMESERVER
+          upload_secret MATRIX_ACCESS_TOKEN
+          upload_secret MATRIX_ROOM_ID
+
+      - name: Deploy
+        id: deploy
+        run: |
+          set +e
+          pnpm wrangler deploy -c wrangler-action.json > deploy.log 2>&1
+          DEPLOY_EXIT_CODE=$?
+          set -e
+
+          # The workers.dev URL identifies a private instance
+          sed -E 's|https://[A-Za-z0-9.-]+\.workers\.dev|(***)|g' deploy.log
+
+          if [ $DEPLOY_EXIT_CODE -ne 0 ]; then
+            echo "::error::wrangler deploy failed"
+            exit 1
+          fi
+
+          WORKER_URL=$(grep -o "https://[A-Za-z0-9.-]*\.workers\.dev" deploy.log | head -n 1 || true)
+
+          if [ -n "$WORKER_URL" ]; then
+            echo "::add-mask::$WORKER_URL"
+          fi
+
+          echo "worker_url=$WORKER_URL" >> "$GITHUB_OUTPUT"

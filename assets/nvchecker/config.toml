@@ -12,6 +12,11 @@ source = "github"
 github = "maillab/cloud-mail"
 use_latest_release = true
 
+[firn]
+source = "github"
+github = "so1ve/firn"
+use_latest_release = true
+
 [hydroxide]
 source = "github"
 github = "emersion/hydroxide"
@@ -46,6 +51,11 @@ use_latest_release = true
 [twikoo-netlify]
 source = "npm"
 npm = "twikoo-netlify"
+
+[uptarn]
+source = "github"
+github = "so1ve/uptarn"
+use_latest_release = true
 
 [whisper_cpp]
 source = "github"

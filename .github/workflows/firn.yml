@@ -1,0 +1,199 @@
+name: Deploy Firn to Cloudflare Workers
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firn-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      # Repository secrets and variables are shared by every workflow here, and
+      # cloud-mail.yml already claims the unprefixed NAME / CUSTOM_DOMAIN names,
+      # hence the FIRN_ prefix.
+      NAME: ${{ secrets.FIRN_NAME || vars.FIRN_NAME || 'firn' }}
+      CUSTOM_DOMAIN: ${{ secrets.FIRN_CUSTOM_DOMAIN || vars.FIRN_CUSTOM_DOMAIN }}
+      # Also used as the OIDC audience, so it must match the URL the cache is
+      # actually reachable at.
+      PUBLIC_BASE_URL: ${{ secrets.FIRN_PUBLIC_BASE_URL || vars.FIRN_PUBLIC_BASE_URL }}
+      OWNERS_JSON: ${{ secrets.FIRN_OWNERS_JSON || vars.FIRN_OWNERS_JSON }}
+      GC_PR_TTL_DAYS: ${{ secrets.FIRN_GC_PR_TTL_DAYS || vars.FIRN_GC_PR_TTL_DAYS }}
+      GC_MAIN_LRU_DAYS: ${{ secrets.FIRN_GC_MAIN_LRU_DAYS || vars.FIRN_GC_MAIN_LRU_DAYS }}
+      GC_MAX_SUBREQUESTS: ${{ secrets.FIRN_GC_MAX_SUBREQUESTS || vars.FIRN_GC_MAX_SUBREQUESTS }}
+      GITHUB_APP_ID: ${{ secrets.FIRN_GITHUB_APP_ID || vars.FIRN_GITHUB_APP_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || vars.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+      D1_DATABASE_ID: ${{ secrets.FIRN_D1_DATABASE_ID || vars.FIRN_D1_DATABASE_ID }}
+      MAIN_SIGNING_KEY: ${{ secrets.FIRN_MAIN_SIGNING_KEY || vars.FIRN_MAIN_SIGNING_KEY }}
+      PR_SIGNING_KEY: ${{ secrets.FIRN_PR_SIGNING_KEY || vars.FIRN_PR_SIGNING_KEY }}
+      GITHUB_PACKAGES_TOKEN: ${{ secrets.FIRN_GITHUB_PACKAGES_TOKEN || vars.FIRN_GITHUB_PACKAGES_TOKEN }}
+      GITHUB_APP_PRIVATE_KEY: ${{ secrets.FIRN_GITHUB_APP_PRIVATE_KEY || vars.FIRN_GITHUB_APP_PRIVATE_KEY }}
+      GITHUB_WEBHOOK_SECRET: ${{ secrets.FIRN_GITHUB_WEBHOOK_SECRET || vars.FIRN_GITHUB_WEBHOOK_SECRET }}
+      MANUAL_TOKENS_JSON: ${{ secrets.FIRN_MANUAL_TOKENS_JSON || vars.FIRN_MANUAL_TOKENS_JSON }}
+      ADMIN_TOKEN: ${{ secrets.FIRN_ADMIN_TOKEN || vars.FIRN_ADMIN_TOKEN }}
+
+    steps:
+      - name: Check Cloudflare Credentials
+        run: |
+          for var in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID PUBLIC_BASE_URL MAIN_SIGNING_KEY PR_SIGNING_KEY; do
+            if [ -z "${!var}" ]; then
+              echo "::error::$var cannot be empty."
+              exit 1
+            fi
+          done
+
+          if ! grep -qE '^https://[^/[:space:]]+$' <<< "$PUBLIC_BASE_URL"; then
+            echo "::error::PUBLIC_BASE_URL must be an https:// URL without a path (e.g. https://cache.example.com)."
+            exit 1
+          fi
+
+          if [ -n "$OWNERS_JSON" ] && ! jq -e 'type == "array"' <<< "$OWNERS_JSON" > /dev/null 2>&1; then
+            echo "::error::OWNERS_JSON must be a JSON array (see OWNERS_JSON in https://github.com/so1ve/firn#manual-deploy)."
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          repository: so1ve/firn
+          ref: ${{ inputs.version }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "26"
+          cache: "pnpm"
+
+      - name: Install Deps
+        env:
+          # nvchecker fires before pnpm's default one-day release age would let the new version in.
+          PNPM_CONFIG_MINIMUM_RELEASE_AGE: 0
+        run: pnpm install --frozen-lockfile
+
+      - name: Disable Wrangler Telemetry
+        run: pnpm wrangler telemetry disable
+
+      # Upstream's wrangler.jsonc currently carries no comments, so plain jq
+      # can take over without a JSONC pass.
+      - name: Setup Wrangler Config
+        run: |
+          CONFIG_FILE="wrangler-action.json"
+
+          if [ -n "$CUSTOM_DOMAIN" ]; then
+            if ! grep -qE '^[A-Za-z0-9.-]+$' <<< "$CUSTOM_DOMAIN"; then
+              echo "::error::CUSTOM_DOMAIN must be a bare hostname (e.g. cache.example.com)."
+              exit 1
+            fi
+            # Masked here rather than relying on the secret being a secret: it is
+            # also readable from vars, and wrangler echoes routes on deploy.
+            echo "::add-mask::$CUSTOM_DOMAIN"
+          else
+            echo "::warning::CUSTOM_DOMAIN is not set, falling back to the workers.dev URL; make sure PUBLIC_BASE_URL points at it."
+          fi
+
+          jq \
+            --arg name "$NAME" \
+            --arg domain "$CUSTOM_DOMAIN" \
+            --arg base_url "$PUBLIC_BASE_URL" \
+            --arg owners "${OWNERS_JSON:-[]}" \
+            --arg gc_pr "$GC_PR_TTL_DAYS" \
+            --arg gc_main "$GC_MAIN_LRU_DAYS" \
+            --arg gc_sub "$GC_MAX_SUBREQUESTS" \
+            --arg app_id "$GITHUB_APP_ID" \
+            '.name = $name
+             | del(."$schema")
+             | .vars.PUBLIC_BASE_URL = $base_url
+             | .vars.OWNERS_JSON = $owners
+             | if $gc_pr == "" then . else .vars.GC_PR_TTL_DAYS = $gc_pr end
+             | if $gc_main == "" then . else .vars.GC_MAIN_LRU_DAYS = $gc_main end
+             | if $gc_sub == "" then . else .vars.GC_MAX_SUBREQUESTS = $gc_sub end
+             | if $app_id == "" then . else .vars.GITHUB_APP_ID = $app_id end
+             | if $domain == "" then .workers_dev = true
+               else .routes = [{ pattern: $domain, custom_domain: true }] end' \
+            wrangler.jsonc > "$CONFIG_FILE"
+
+      - name: Setup D1 Database
+        run: |
+          CONFIG_FILE="wrangler-action.json"
+
+          if [ -z "$D1_DATABASE_ID" ]; then
+            DB_LIST=$(pnpm wrangler d1 list --json)
+
+            if ! jq -e --arg n "$NAME" '.[] | select(.name == $n)' <<< "$DB_LIST" > /dev/null; then
+              echo "D1 database $NAME does not exist, creating it..."
+              pnpm wrangler d1 create "$NAME"
+              DB_LIST=$(pnpm wrangler d1 list --json)
+            fi
+
+            D1_DATABASE_ID=$(jq -r --arg n "$NAME" '.[] | select(.name == $n) | .uuid' <<< "$DB_LIST")
+          fi
+
+          # Pinning the id keeps every deploy on the same database — a
+          # re-provisioned one would come up empty.
+          jq --arg n "$NAME" --arg id "$D1_DATABASE_ID" \
+            '.d1_databases = [{ binding: "DB", database_name: $n, database_id: $id, migrations_dir: "migrations" }]' \
+            "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
+
+      - name: Apply Migrations
+        run: pnpm wrangler d1 migrations apply DB --remote -c wrangler-action.json
+
+      # Wrangler secrets survive redeploys, so only the ones this workflow is
+      # given are (re)uploaded; anything managed by hand in the dashboard is
+      # left alone.
+      - name: Upload Secrets
+        run: |
+          upload_secret() {
+            if [ -n "${!1}" ]; then
+              echo "${!1}" | pnpm wrangler secret put "$1" -c wrangler-action.json
+            else
+              echo "::warning::$1 is not set, skipping."
+            fi
+          }
+
+          upload_secret MAIN_SIGNING_KEY
+          upload_secret PR_SIGNING_KEY
+          upload_secret GITHUB_PACKAGES_TOKEN
+          upload_secret GITHUB_APP_PRIVATE_KEY
+          upload_secret GITHUB_WEBHOOK_SECRET
+          upload_secret MANUAL_TOKENS_JSON
+          upload_secret ADMIN_TOKEN
+
+      - name: Deploy
+        id: deploy
+        run: |
+          set +e
+          pnpm wrangler deploy -c wrangler-action.json > deploy.log 2>&1
+          DEPLOY_EXIT_CODE=$?
+          set -e
+
+          # The workers.dev URL identifies a private instance, so redact it
+          # before the log reaches the (public) run output.
+          sed -E 's|https://[A-Za-z0-9.-]+\.workers\.dev|(***)|g' deploy.log
+
+          if [ $DEPLOY_EXIT_CODE -ne 0 ]; then
+            echo "::error::wrangler deploy failed"
+            exit 1
+          fi
+
+          WORKER_URL=$(grep -o "https://[A-Za-z0-9.-]*\.workers\.dev" deploy.log | head -n 1 || true)
+
+          if [ -n "$WORKER_URL" ]; then
+            echo "::add-mask::$WORKER_URL"
+          fi
+
+          echo "worker_url=$WORKER_URL" >> "$GITHUB_OUTPUT"
