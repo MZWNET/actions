@@ -1,0 +1,76 @@
+{
+  "version": 2,
+  "data": {
+    "bewlycat": {
+      "version": "v1.8.5",
+      "gitref": "refs/tags/v1.8.5",
+      "url": "https://github.com/keleus/BewlyCat/releases/tag/v1.8.5",
+      "creation_time": "2026-11-24T06:26:13Z"
+    },
+    "cloud-mail": {
+      "version": "v3.6.0",
+      "gitref": "refs/tags/v3.6.0",
+      "url": "https://github.com/maillab/cloud-mail/releases/tag/v3.6.0",
+      "creation_time": "2026-11-18T14:59:34Z"
+    },
+    "firn": {
+      "version": "v1.2.2",
+      "gitref": "refs/tags/v1.2.2",
+      "url": "https://github.com/so1ve/firn/releases/tag/v1.2.2",
+      "creation_time": "2026-11-24T06:22:50Z"
+    },
+    "hydroxide": {
+      "version": "v0.2.32",
+      "gitref": "refs/tags/v0.2.32",
+      "url": "https://github.com/emersion/hydroxide/releases/tag/v0.2.32",
+      "creation_time": "2026-05-10T16:54:23Z"
+    },
+    "kiro_rs": {
+      "version": "v2026.3.1",
+      "gitref": "refs/tags/v2026.3.1",
+      "url": "https://github.com/hank9999/kiro.rs/releases/tag/v2026.3.1",
+      "creation_time": "2026-03-30T12:23:38Z"
+    },
+    "llama_cpp": {
+      "version": "b12823",
+      "gitref": "refs/tags/b12823",
+      "revision": "3ab385146cad1a374dadc40e042dcc50edceb046",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/tag/b12823",
+      "creation_time": "2026-11-28T01:24:25Z",
+      "revision_creation_time": "2026-11-27T14:32:42Z"
+    },
+    "nchat": {
+      "version": "v5.20.39",
+      "gitref": "refs/tags/v5.20.39",
+      "url": "https://github.com/d99kris/nchat/releases/tag/v5.20.39",
+      "creation_time": "2026-11-21T04:35:26Z"
+    },
+    "openeuicc": {
+      "version": "unpriv-v1.7.2",
+      "revision": "9a537a25163c5159899260fb6191a5da35a692bd",
+      "url": "https://gitea.angry.im/PeterCxy/OpenEUICC/releases/tag/unpriv-v1.7.2"
+    },
+    "stable-diffusion_cpp": {
+      "version": "master-1147-3b0426f",
+      "gitref": "refs/tags/master-1147-3b0426f",
+      "url": "https://github.com/leejet/stable-diffusion.cpp/releases/tag/master-1147-3b0426f",
+      "creation_time": "2026-11-27T21:20:02Z"
+    },
+    "twikoo-netlify": {
+      "version": "2.0.18",
+      "url": "https://www.npmjs.com/package/twikoo-netlify/v/2.0.18"
+    },
+    "uptarn": {
+      "version": "v0.7.0",
+      "gitref": "refs/tags/v0.7.0",
+      "url": "https://github.com/so1ve/uptarn/releases/tag/v0.7.0",
+      "creation_time": "2026-11-26T04:15:28Z"
+    },
+    "whisper_cpp": {
+      "version": "v1.9.6",
+      "gitref": "refs/tags/v1.9.6",
+      "url": "https://github.com/ggml-org/whisper.cpp/releases/tag/v1.9.6",
+      "creation_time": "2026-11-23T17:51:11Z"
+    }
+  }
+}
